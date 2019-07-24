@@ -13,3 +13,4 @@ int test_thread_pool();
 void benchmark_single_thread();
 void benchmark_multiple_thread();
 void test_zhongwen();
+void test_zhongwen2();

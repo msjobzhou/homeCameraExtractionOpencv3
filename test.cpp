@@ -26,6 +26,7 @@ using namespace cv;
 
 
 void test_zhongwen() {
+	std::wcout << "User-preferred locale setting is " << std::locale("").name().c_str() << '\n';
 	std::wstring str = L"123,ÎÒÊÇË­£¿ÎÒ°®µöÓãµº£¡";
 	std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
 	std::string narrowStr = conv.to_bytes(str);
@@ -39,13 +40,24 @@ void test_zhongwen() {
 	}
 	std::wstring wideStr = conv.from_bytes(narrowStr);
 	{
-		std::locale::global(std::locale("chs"));
+		std::locale::global(std::locale(""));
 		std::wofstream ofs(L"d:\\testW.txt");
+		std::ofstream ofs2("d:\\testW111.txt");
+		wcout.imbue(std::locale(""));
+		ofs.imbue(std::locale(""));
 		if (!ofs) {
 			std::cout << "open file failed" << endl;
 		}
+		wstring_convert<codecvt<wchar_t, char, mbstate_t>> gbk_cvt(new codecvt<wchar_t, char, mbstate_t>("chs"));
+		ofs2 << gbk_cvt.to_bytes(str);
+		
 		ofs << wideStr;
+		wcout << wideStr;
 	}
+}
+
+void test_zhongwen2() {
+
 }
 void test_Database_class() {
 	char *pDbName = "C:\\Users\\chao\\gitRepo\\learnPython\\testdb_cpp.db";
