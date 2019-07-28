@@ -20,6 +20,7 @@
 #include <codecvt> 
 #include <fstream> 
 
+#include "codeConvert.hpp"
 
 
 using namespace cv;
@@ -63,8 +64,8 @@ void test_Database_class() {
 	char *pDbName = "C:\\Users\\chao\\gitRepo\\learnPython\\testdb_cpp.db";
 	Database *pdb = new Database(pDbName);
 	// 插入操作第一个参数ID是个自增字段
-	pdb->m_IDtable.insert(NULL, "E:\\周晓董视频备份\\客厅墙上");
-	pdb->m_IDtable.insert(NULL, "E:\\周晓董视频备份\\客厅电视柜上");
+	//pdb->m_IDtable.insert(NULL, gbk_to_utf8("E:\\周晓董视频备份\\客厅墙上"));
+	//pdb->m_IDtable.insert(NULL, gbk_to_utf8("E:\\周晓董视频备份\\客厅电视柜上"));
 	
 	vector<vector<string> > results;
 

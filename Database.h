@@ -11,7 +11,7 @@ private:
 	sqlite3 *m_pdb;
 
 	bool openDB(const char* filename);
-	void createTable();
+	void createTable(char* sqlStr);
 	void closeDB();
 
 public:

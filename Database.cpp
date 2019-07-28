@@ -7,7 +7,17 @@ Database::Database(const char* filename)
 	if (!openDB(filename))
 		return;
 	m_IDtable.m_pParentDB = this;
-	createTable();
+	char* sqlStrCreateTableInitialDirectory = "CREATE TABLE IF NOT EXISTS \
+		InitialDirectory (ID INTEGER PRIMARY KEY AUTOINCREMENT, Path varchar(255) NOT NULL)";
+	createTable(sqlStrCreateTableInitialDirectory);
+	char* sqlStrCreateTableScanDirectory = "CREATE TABLE IF NOT EXISTS \
+		ScanDirectory (ID INTEGER PRIMARY KEY AUTOINCREMENT, InitialDirectoryID INTEGER, \
+		Path varchar(255) NOT NULL)";
+	createTable(sqlStrCreateTableScanDirectory);
+	char* sqlStrCreateTableScanFile = "CREATE TABLE IF NOT EXISTS \
+		ScanFile (ID INTEGER PRIMARY KEY AUTOINCREMENT, ScanDirectoryID INTEGER, \
+		FileName varchar(255) NOT NULL, DeleteMark BOOLEAN, DeleteAlready BOOLEAN)";
+	createTable(sqlStrCreateTableScanFile);
 }
 
 Database::~Database()
@@ -23,15 +33,14 @@ bool Database::openDB(const char* filename)
 	return false;
 }
 
-void Database::createTable()
+void Database::createTable(char* sqlStr)
 {
 	sqlite3_stmt *pStatement;
-	char* query = "CREATE TABLE IF NOT EXISTS InitialDirectory (ID INTEGER PRIMARY KEY AUTOINCREMENT, Path varchar(200) NOT NULL)";
-
-	int rc = sqlite3_prepare_v2(m_pdb, query, -1, &pStatement, 0);
+	
+	int rc = sqlite3_prepare_v2(m_pdb, sqlStr, -1, &pStatement, 0);
 	if (rc != SQLITE_OK)
 	{
-		cerr << "sqlite3_prepare_v2 error:" << query << endl;
+		cerr << "sqlite3_prepare_v2 error:" << sqlStr << endl;
 		exit(-1);
 	}
 
@@ -40,7 +49,7 @@ void Database::createTable()
 	sqlite3_finalize(pStatement);
 
 	string error = sqlite3_errmsg(m_pdb);
-	if (error != "not an error") cout << query << " " << error << endl;
+	if (error != "not an error") cout << sqlStr << " " << error << endl;
 }
 
 
