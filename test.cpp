@@ -1,5 +1,5 @@
 //用于测试代码的临时文件，被测试完成的代码才可以更好地执行
-
+//#pragma warning (disable：4996)
 #include "test.h"
 #include "VideoUtil.h"
 #include "FolderUtil.h"
@@ -254,4 +254,12 @@ void test_camera() {
 	}
 
 	
+}
+void printString(string& s) {
+	cout << s << endl;
+}
+void test_traverseFolderBFS() {
+	traverseFolder_handler2 tfh = printString;
+	string path = "E:\\周晓董视频备份\\客厅电视柜上";
+	FolderUtil::traverseFolderBFS(path, tfh);
 }

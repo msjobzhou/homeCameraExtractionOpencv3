@@ -12,12 +12,15 @@
 using namespace std;
 
 typedef void(*traverseFolder_handler)(string &filePath, ofstream &outFile);
+typedef void(*traverseFolder_handler2)(string &filePath);
 
 class FolderUtil {
 public:
 	static bool FolderHasFiles(string fileName);
 
 	static bool listFiles(string fileName);
+
+	static bool isFolder(const char* path);
 
 	static void traverseFolder(string folderPath, ofstream &fout, traverseFolder_handler tf_handler);
 
@@ -27,5 +30,6 @@ public:
 
 	static int getFolderAndFilename(char* fullPath, char* folder, char* fileName);
 
+	static void traverseFolderBFS(string path, traverseFolder_handler2 tfh);
 };
 

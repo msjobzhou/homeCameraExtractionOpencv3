@@ -8,6 +8,8 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<direct.h>
+#include <sys/stat.h>
+#include <queue>
 
 #include "FolderUtil.h"
 using namespace std;
@@ -40,7 +42,7 @@ _findclose(_In_ intptr_t _FindHandle);*/
 bool FolderUtil::FolderHasFiles(string fileName)
 {
 	_finddata_t fileInfo;
-	long handle = _findfirst(fileName.c_str(), &fileInfo);
+	intptr_t handle = _findfirst(fileName.c_str(), &fileInfo);
 
 	if (handle == -1L)
 	{
@@ -51,10 +53,10 @@ bool FolderUtil::FolderHasFiles(string fileName)
 	do
 	{
 		if (fileInfo.attrib & _A_SUBDIR) {
-
+			cout << fileInfo.name << endl;
 		}
 		else {
-		    //cout << fileInfo.name << endl;
+		    cout << fileInfo.name << endl;
 			return true;
 		}
 	} while (_findnext(handle, &fileInfo) == 0);
@@ -62,6 +64,29 @@ bool FolderUtil::FolderHasFiles(string fileName)
 	return false;
 }
 
+/*
+函数作用：判断一个给定的路径是否是文件夹
+*/
+bool FolderUtil::isFolder(const char* path) {
+	struct stat s;
+	if (stat(path, &s) == 0) {
+		if (s.st_mode & S_IFDIR) {
+			//cout << "DIR" << endl;
+			return true;
+		}
+		else if (s.st_mode & S_IFREG) {
+			//cout << "FILE" << endl;
+			return false;
+		}
+		else {
+			cerr << "cannot identify whether it is folder or file" << endl;
+		}
+	}
+	else {
+		cerr << "identify folder or file ERR" << endl;
+	}
+	return false;
+}
 
 /*
 	函数作用：查询当前文件夹下的文件
@@ -71,7 +96,7 @@ bool FolderUtil::FolderHasFiles(string fileName)
 bool FolderUtil::listFiles(string fileName)
 {
 	_finddata_t fileInfo;
-	long handle = _findfirst(fileName.c_str(), &fileInfo);
+	intptr_t handle = _findfirst(fileName.c_str(), &fileInfo);
 
 	if (handle == -1L)
 	{
@@ -100,7 +125,7 @@ void FolderUtil::traverseFolder(string folderPath, ofstream &fout, traverseFolde
 	_finddata_t FileInfo;
 	//这里可以指定遍历文件的格式
 	string strfind = folderPath + "\\*.*";
-	long Handle = _findfirst(strfind.c_str(), &FileInfo);
+	intptr_t Handle = _findfirst(strfind.c_str(), &FileInfo);
 
 	if (Handle == -1L)
 	{
@@ -116,7 +141,7 @@ void FolderUtil::traverseFolder(string folderPath, ofstream &fout, traverseFolde
 			{
 				string newPath = folderPath + "\\" + FileInfo.name;
 				traverseFolder(newPath, fout, tf_handler);
-				cout << "find new path:"<< newPath << endl;
+				//cout << "find new path:"<< newPath << endl;
 			}
 		}
 		else
@@ -125,7 +150,7 @@ void FolderUtil::traverseFolder(string folderPath, ofstream &fout, traverseFolde
 				string tmpFileName = folderPath + "\\" + FileInfo.name;
 				(*tf_handler)(tmpFileName, fout);
 			}
-			cout << folderPath << "\\" << FileInfo.name << endl;
+			//cout << folderPath << "\\" << FileInfo.name << endl;
 		}
 	} while (_findnext(Handle, &FileInfo) == 0);
 
@@ -145,7 +170,7 @@ void FolderUtil::traverseFolderAndSave2xml(string folderPath, rapidxml::xml_node
 	_finddata_t FileInfo;
 	//这里可以指定遍历文件的格式
 	string strfind = folderPath + "\\*.*";
-	long Handle = _findfirst(strfind.c_str(), &FileInfo);
+	intptr_t Handle = _findfirst(strfind.c_str(), &FileInfo);
 
 	if (Handle == -1L)
 	{
@@ -185,6 +210,53 @@ void FolderUtil::traverseFolderAndSave2xml(string folderPath, rapidxml::xml_node
 }
 
 /*
+函数作用：利用队列采用BFS广度优先的方式遍历文件夹，将遍历到的文件夹或者文件交给回调函数tfh处理
+*/
+void FolderUtil::traverseFolderBFS(string path, traverseFolder_handler2 tfh) {
+	if (!isFolder(path.c_str())){
+		cerr << "not a folder" << endl;
+		return;
+	}
+	queue<string> folderQueue;
+	folderQueue.push(path);
+	while (!folderQueue.empty()) {
+		string folder = folderQueue.front();
+		_finddata_t FileInfo;
+		//这里可以指定遍历文件的格式
+		string strfind = folder + "\\*.*";
+		intptr_t Handle = _findfirst(strfind.c_str(), &FileInfo);
+
+		if (Handle == -1L)
+		{
+			cerr << "can not match the folder path" << endl;
+			exit(-1);
+		}
+		do {
+			//判断是否有子目录
+			if (FileInfo.attrib & _A_SUBDIR)
+			{
+				//这个语句很重要
+				if ((strcmp(FileInfo.name, ".") != 0) && (strcmp(FileInfo.name, "..") != 0))
+				{
+					string newPath = folder + "\\" + FileInfo.name;
+					folderQueue.push(newPath);
+					//回调函数负责对新发现的路径进行处理
+					tfh(newPath);
+				}
+			}
+			else
+			{
+				string tmpFileName = folder + "\\" + FileInfo.name;
+				//回调函数负责对新发现的文件进行处理
+				tfh(tmpFileName);
+			}
+		} while (_findnext(Handle, &FileInfo) == 0);
+
+		folderQueue.pop();
+	}
+
+}
+/*
 函数作用：根据文件名的绝对路径得到文件夹路径和文件名
 */
 
@@ -193,7 +265,7 @@ int FolderUtil::getFolderAndFilename(char* fullPath, char* folder, char* fileNam
 	if (fullPath == NULL || folder == NULL || fileName == NULL) {
 		return -1;
 	}
-	int nLen = strlen(fullPath);
+	size_t nLen = strlen(fullPath);
 	if (nLen >= 255) {
 		printf("路径太长，超过255");
 		return -1;
@@ -204,7 +276,7 @@ int FolderUtil::getFolderAndFilename(char* fullPath, char* folder, char* fileNam
 		//如果最后一个字符是\，直接提示出错，给出的是个文件夹路径
 		return -1;
 	}
-	for (int i = nLen - 1; i >= 0; i--) {
+	for (size_t i = nLen - 1; i >= 0; i--) {
 		if (chPathTmp[i] == '\\') {
 			//从绝对路径倒序找到一个\，在这之前的都是文件夹路径，在这之后的是文件名
 			strcpy(fileName, &chPathTmp[i + 1]);
@@ -224,7 +296,7 @@ int FolderUtil::getFolderAndFilename(char* fullPath, char* folder, char* fileNam
 int FolderUtil::mkdirByLevel(const char* path) {
 	char *tag;
 	char bufPath[256];
-	int nLen = strlen(path);
+	size_t nLen = strlen(path);
 	if (nLen >=255) {
 		printf("文件路径长于等于255");
 		return -1;
