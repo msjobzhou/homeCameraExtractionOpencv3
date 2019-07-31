@@ -18,7 +18,7 @@ int main()
 
 	//test_sqlite_zhongwen();
 
-	//test_Database_class();
+	test_Database_class();
 
 	//testReadWriteThread();
 
@@ -32,7 +32,7 @@ int main()
 
 	//test_zhongwen();
 
-	test_traverseFolderBFS();
+	//test_traverseFolderBFS();
 
 	return 0;
 }

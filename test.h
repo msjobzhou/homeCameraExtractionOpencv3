@@ -2,6 +2,7 @@
 #define _CRT_SECURE_NO_WARNINGS 1
 
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -21,4 +22,6 @@ void benchmark_multiple_thread();
 void test_zhongwen();
 void test_zhongwen2();
 void printString(string& s);
+
+void tfh_sqlite(string& s);
 void test_traverseFolderBFS();

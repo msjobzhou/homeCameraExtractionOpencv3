@@ -25,4 +25,17 @@ public:
 		void update(int id, string path);
 		void query(vector<vector<string> > &results);
 	} m_IDtable;
+
+	class ScanDirectory {
+	public:
+		Database* m_pParentDB;
+		void insert(int id, int InitialDirectoryID, string path);
+	} m_SDtable;
+
+	/*class ScanFile {
+	public:
+		Database* m_pParentDB;
+		void insert(int id, int ScanDirectoryID, string fileName);
+		void update(int id, bool bDeleteMark, bool bDeleteAlready);
+	} m_SFtable;*/
 };

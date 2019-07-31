@@ -24,7 +24,7 @@
 
 
 using namespace cv;
-
+vector<string> gVecFolder;
 
 void test_zhongwen() {
 	std::wcout << "User-preferred locale setting is " << std::locale("").name().c_str() << '\n';
@@ -60,12 +60,21 @@ void test_zhongwen() {
 void test_zhongwen2() {
 
 }
+
+void tfh_sqlite(string& path) {
+	if (FolderUtil::isFolder(path.c_str())) {
+		gVecFolder.push_back(path);
+	}
+}
+
 void test_Database_class() {
 	char *pDbName = "C:\\Users\\chao\\gitRepo\\learnPython\\testdb_cpp.db";
 	Database *pdb = new Database(pDbName);
+	char *path1 = "E:\\周晓董视频备份\\客厅墙上";
+	char *path2 = "E:\\周晓董视频备份\\客厅电视柜上";
 	// 插入操作第一个参数ID是个自增字段
-	//pdb->m_IDtable.insert(NULL, gbk_to_utf8("E:\\周晓董视频备份\\客厅墙上"));
-	//pdb->m_IDtable.insert(NULL, gbk_to_utf8("E:\\周晓董视频备份\\客厅电视柜上"));
+	pdb->m_IDtable.insert(NULL, gbk_to_utf8(path1));
+	pdb->m_IDtable.insert(NULL, gbk_to_utf8(path2));
 	
 	vector<vector<string> > results;
 
@@ -76,9 +85,25 @@ void test_Database_class() {
 	vector<vector<string> >::iterator v = results.begin();
 	while (v != results.end()) {
 		oneRow = *v;
-		for (int i = 0; i < oneRow.size();i++)
-			cout << " | " << oneRow.at(i) ;
-		cout << endl;
+		/*for (int i = 0; i < oneRow.size();i++)
+			cout << " | " << utf8_to_gbk(oneRow.at(i));
+		cout << endl;*/
+		//从查询的每行记录的第二列中得到 初始扫描目录，第一列中得到ID
+		string id = utf8_to_gbk(oneRow.at(0));
+		string initialPath = utf8_to_gbk(oneRow.at(1));
+		//将此初始目录下的子文件夹（含有文件的）加入到sqlite数据中的ScanDirectory表
+		traverseFolder_handler2 tfh = tfh_sqlite;
+		FolderUtil::traverseFolderBFS(initialPath, tfh);
+
+		vector<string>::iterator vFolder = gVecFolder.begin();
+		while (vFolder != gVecFolder.end()) {
+			cout << *vFolder << endl;
+			vFolder++;
+		}
+
+		gVecFolder.clear();
+		vector<string>(gVecFolder).swap(gVecFolder);
+
 		v++;
 	}
 }
