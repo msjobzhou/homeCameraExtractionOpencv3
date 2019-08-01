@@ -20,7 +20,7 @@ int test_thread_pool();
 void benchmark_single_thread();
 void benchmark_multiple_thread();
 void test_zhongwen();
-void test_zhongwen2();
+void test_FolderHasFiles();
 void printString(string& s);
 
 void tfh_sqlite(string& s);

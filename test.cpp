@@ -5,6 +5,7 @@
 #include "FolderUtil.h"
 #include "FrameDetect.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <sqlite3.h>
 #include<opencv2\opencv.hpp>
 
@@ -57,13 +58,15 @@ void test_zhongwen() {
 	}
 }
 
-void test_zhongwen2() {
-
+void test_FolderHasFiles() {
+	char *path1 = "E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\08";
+	cout << FolderUtil::FolderHasFiles(path1) << endl;
 }
 
 void tfh_sqlite(string& path) {
 	if (FolderUtil::isFolder(path.c_str())) {
-		gVecFolder.push_back(path);
+		if (FolderUtil::FolderHasFiles(path))
+			gVecFolder.push_back(path);
 	}
 }
 
@@ -98,6 +101,8 @@ void test_Database_class() {
 		vector<string>::iterator vFolder = gVecFolder.begin();
 		while (vFolder != gVecFolder.end()) {
 			cout << *vFolder << endl;
+			//插入数据库
+			pdb->m_SDtable.insert(NULL, atoi(id.c_str()), gbk_to_utf8(*vFolder));
 			vFolder++;
 		}
 

@@ -18,6 +18,8 @@ int main()
 
 	//test_sqlite_zhongwen();
 
+	//test_FolderHasFiles();
+
 	test_Database_class();
 
 	//testReadWriteThread();

@@ -1,5 +1,6 @@
 #include "Database.h"
 #include <iostream>
+#include <stdlib.h>
 
 Database::Database(const char* filename)
 {
@@ -14,7 +15,7 @@ Database::Database(const char* filename)
 	createTable(sqlStrCreateTableInitialDirectory);
 	char* sqlStrCreateTableScanDirectory = "CREATE TABLE IF NOT EXISTS \
 		ScanDirectory (ID INTEGER PRIMARY KEY AUTOINCREMENT, InitialDirectoryID INTEGER, \
-		Path varchar(255) NOT NULL)";
+		Path varchar(255) NOT NULL UNIQUE)";
 	createTable(sqlStrCreateTableScanDirectory);
 	char* sqlStrCreateTableScanFile = "CREATE TABLE IF NOT EXISTS \
 		ScanFile (ID INTEGER PRIMARY KEY AUTOINCREMENT, ScanDirectoryID INTEGER, \

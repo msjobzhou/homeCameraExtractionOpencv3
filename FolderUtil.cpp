@@ -41,6 +41,7 @@ _findclose(_In_ intptr_t _FindHandle);*/
 */
 bool FolderUtil::FolderHasFiles(string fileName)
 {
+	fileName = fileName + "\\*.*";
 	_finddata_t fileInfo;
 	intptr_t handle = _findfirst(fileName.c_str(), &fileInfo);
 
@@ -53,10 +54,12 @@ bool FolderUtil::FolderHasFiles(string fileName)
 	do
 	{
 		if (fileInfo.attrib & _A_SUBDIR) {
-			cout << fileInfo.name << endl;
+			if ((strcmp(fileInfo.name, ".") != 0) && (strcmp(fileInfo.name, "..") != 0)) {
+				//cout << "folder:" << fileInfo.name << endl;
+			}
 		}
 		else {
-		    cout << fileInfo.name << endl;
+		   // cout << "file:" <<fileInfo.name << endl;
 			return true;
 		}
 	} while (_findnext(handle, &fileInfo) == 0);
@@ -95,6 +98,7 @@ bool FolderUtil::isFolder(const char* path) {
 */
 bool FolderUtil::listFiles(string fileName)
 {
+	fileName = fileName + "\\*.*";
 	_finddata_t fileInfo;
 	intptr_t handle = _findfirst(fileName.c_str(), &fileInfo);
 
@@ -107,6 +111,9 @@ bool FolderUtil::listFiles(string fileName)
 	do
 	{
 		if (fileInfo.attrib & _A_SUBDIR) {
+			if ((strcmp(fileInfo.name, ".") != 0) && (strcmp(fileInfo.name, "..") != 0)) {
+
+			}
 
 		}
 		else {
