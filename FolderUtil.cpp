@@ -96,7 +96,7 @@ bool FolderUtil::isFolder(const char* path) {
 	如果需要指定特定扩展名，需要在文件夹末尾增加扩展名，
 	"C:\\Windows\\*.exe"的意思是查询windows目录下扩展名为exe的文件
 */
-bool FolderUtil::listFiles(string fileName)
+bool FolderUtil::listFiles(string fileName, listFile_handler lfh)
 {
 	fileName = fileName + "\\*.*";
 	_finddata_t fileInfo;
@@ -117,7 +117,9 @@ bool FolderUtil::listFiles(string fileName)
 
 		}
 		else {
-			cout << fileInfo.name << endl;
+			string fileName = fileInfo.name;
+			lfh(fileName);
+			//cout << fileInfo.name << endl;
 		}
 	} while (_findnext(handle, &fileInfo) == 0);
 	_findclose(handle);
@@ -219,6 +221,7 @@ void FolderUtil::traverseFolderAndSave2xml(string folderPath, rapidxml::xml_node
 /*
 函数作用：利用队列采用BFS广度优先的方式遍历文件夹，将遍历到的文件夹或者文件交给回调函数tfh处理
 */
+
 void FolderUtil::traverseFolderBFS(string path, traverseFolder_handler2 tfh) {
 	if (!isFolder(path.c_str())){
 		cerr << "not a folder" << endl;

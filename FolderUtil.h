@@ -13,12 +13,14 @@ using namespace std;
 
 typedef void(*traverseFolder_handler)(string &filePath, ofstream &outFile);
 typedef void(*traverseFolder_handler2)(string &filePath);
+typedef void(*listFile_handler)(string &fileName);
+
 
 class FolderUtil {
 public:
 	static bool FolderHasFiles(string fileName);
 
-	static bool listFiles(string fileName);
+	static bool listFiles(string fileName, listFile_handler lfh);
 
 	static bool isFolder(const char* path);
 

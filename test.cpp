@@ -26,6 +26,7 @@
 
 using namespace cv;
 vector<string> gVecFolder;
+vector<string> gVecFile;
 
 void test_zhongwen() {
 	std::wcout << "User-preferred locale setting is " << std::locale("").name().c_str() << '\n';
@@ -69,6 +70,9 @@ void tfh_sqlite(string& path) {
 			gVecFolder.push_back(path);
 	}
 }
+void lfh_sqlite(string& file) {
+	gVecFile.push_back(file);
+}
 
 void test_Database_class() {
 	char *pDbName = "C:\\Users\\chao\\gitRepo\\learnPython\\testdb_cpp.db";
@@ -80,9 +84,10 @@ void test_Database_class() {
 	pdb->m_IDtable.insert(NULL, gbk_to_utf8(path2));
 	
 	vector<vector<string> > results;
-
 	vector<string> oneRow;
 
+	//查询InitialDirectory这个数据库表，并根据得到的初始文件夹目录，并在初始目录下进一步去遍历得到其下有文件的
+	//子文件夹，并将其插入ScanDirectory的数据库表
 	pdb->m_IDtable.query(results);
 
 	vector<vector<string> >::iterator v = results.begin();
@@ -105,12 +110,49 @@ void test_Database_class() {
 			pdb->m_SDtable.insert(NULL, atoi(id.c_str()), gbk_to_utf8(*vFolder));
 			vFolder++;
 		}
-
 		gVecFolder.clear();
 		vector<string>(gVecFolder).swap(gVecFolder);
-
 		v++;
 	}
+	oneRow.clear();
+	vector<string>(oneRow).swap(oneRow);
+	results.clear();
+	vector<vector<string>>(results).swap(results);
+
+
+	//查询ScanDirectory这个数据库表，并根据得到的文件夹目录，进一步去遍历得到其下的文件名
+	//并将其插入ScanFile的数据库表
+	pdb->m_SDtable.query(results);
+
+	v = results.begin();
+	while (v != results.end()) {
+		oneRow = *v;
+		/*for (int i = 0; i < oneRow.size();i++)
+		cout << " | " << utf8_to_gbk(oneRow.at(i));
+		cout << endl;*/
+		//从查询的每行记录的第三列中得到文件夹目录，第一列中得到ID
+		string id = utf8_to_gbk(oneRow.at(0));
+		string scanPath = utf8_to_gbk(oneRow.at(2));
+		//将此scan目录下的文件名加入到sqlite数据中的ScanFile表
+		listFile_handler lfh = lfh_sqlite;
+		FolderUtil::listFiles(scanPath, lfh);
+
+		vector<string>::iterator iterFile = gVecFile.begin();
+		while (iterFile != gVecFile.end()) {
+			cout << *iterFile << endl;
+			//插入数据库
+			pdb->m_SFtable.insert(NULL, atoi(id.c_str()), gbk_to_utf8(*iterFile));
+			iterFile++;
+		}
+		gVecFile.clear();
+		vector<string>(gVecFile).swap(gVecFile);
+		v++;
+	}
+	oneRow.clear();
+	vector<string>(oneRow).swap(oneRow);
+	results.clear();
+	vector<vector<string>>(results).swap(results);
+
 }
 
 

@@ -30,12 +30,14 @@ public:
 	public:
 		Database* m_pParentDB;
 		void insert(int id, int InitialDirectoryID, string path);
+		void query(vector<vector<string> > &results);
 	} m_SDtable;
 
-	/*class ScanFile {
+	class ScanFile {
 	public:
 		Database* m_pParentDB;
 		void insert(int id, int ScanDirectoryID, string fileName);
-		void update(int id, bool bDeleteMark, bool bDeleteAlready);
-	} m_SFtable;*/
+		void update_bDeleteMark(int id, bool bDeleteMark);
+		void update_bDeleteAlready(int id, bool bDeleteAlready);
+	} m_SFtable;
 };
