@@ -19,7 +19,7 @@ Database::Database(const char* filename)
 	createTable(sqlStrCreateTableScanDirectory);
 	char* sqlStrCreateTableScanFile = "CREATE TABLE IF NOT EXISTS \
 		ScanFile (ID INTEGER PRIMARY KEY AUTOINCREMENT, ScanDirectoryID INTEGER, \
-		FileName varchar(255) NOT NULL, DeleteMark BOOLEAN DEFAULT FALSE, DeleteAlready BOOLEAN DEFAULT FALSE)";
+		FileName varchar(255) NOT NULL, DeleteMark BOOLEAN DEFAULT NULL, DeleteAlready BOOLEAN DEFAULT NULL)";
 	createTable(sqlStrCreateTableScanFile);
 }
 
@@ -224,10 +224,10 @@ void Database::ScanFile::insert(int id, int ScanDirectoryID, string fileName)
 {
 	sqlite3_stmt *pStatement;
 
-	char* query = "INSERT INTO ScanFile VALUES(@_id, @_ScanDirectoryID, @_fileName, false, false);";
+	char* query = "INSERT INTO ScanFile VALUES(@_id, @_ScanDirectoryID, @_fileName, NULL, NULL);";
 
 	if (NULL == id) {
-		query = "INSERT INTO ScanFile VALUES(NULL, @_ScanDirectoryID, @_fileName, false, false);";
+		query = "INSERT INTO ScanFile VALUES(NULL, @_ScanDirectoryID, @_fileName, NULL, NULL);";
 	}
 
 	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);

@@ -20,7 +20,7 @@ int main()
 
 	//test_FolderHasFiles();
 
-	test_Database_class();
+	//test_Database_class();
 
 	//testReadWriteThread();
 
@@ -35,6 +35,8 @@ int main()
 	//test_zhongwen();
 
 	//test_traverseFolderBFS();
+
+	test_SingleConsumerSingleProducer_class();
 
 	return 0;
 }

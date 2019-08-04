@@ -11,6 +11,7 @@ public:
 };
 
 class FrameDiffDetect : public FrameDetect {
-
+public:
 	bool FrameDetectResult(const vector<Mat> &imgFrame);
+	bool FrameDetectResultSaveVideo(const vector<Mat> &imgFrame);
 };

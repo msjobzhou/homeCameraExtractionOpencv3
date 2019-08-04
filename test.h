@@ -25,3 +25,8 @@ void printString(string& s);
 
 void tfh_sqlite(string& s);
 void test_traverseFolderBFS();
+
+
+void ProducerTask();
+void ConsumerTask();
+void test_SingleConsumerSingleProducer_class();

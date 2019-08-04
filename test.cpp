@@ -22,7 +22,7 @@
 #include <fstream> 
 
 #include "codeConvert.hpp"
-
+#include "SingleConsumerSingleProducer.hpp"
 
 using namespace cv;
 vector<string> gVecFolder;
@@ -263,8 +263,8 @@ void test_FrameDetectResultAndSaveVideo() {
 	const char* filePath = "D:\\test";
 	int period = 30;
 	VideoUtil::readVideo(fileName, filePath, period, vImg);
-	FrameDetect *pFd = new FrameDiffDetect();
-	pFd->FrameDetectResult(vImg);
+	FrameDiffDetect *pFd = new FrameDiffDetect();
+	pFd->FrameDetectResultSaveVideo(vImg);
 	//释放vector的内存空间，防止内存泄漏
 	//释放vector申请的内存空间，防止内存泄漏
 	vImg.clear();
@@ -282,8 +282,8 @@ void test_FrameDetectResult() {
 	}
 	vImg.push_back(mImg1);
 	vImg.push_back(mImg2);
-	FrameDetect *pFd = new FrameDiffDetect();
-	pFd->FrameDetectResult(vImg);
+	FrameDiffDetect *pFd = new FrameDiffDetect();
+	pFd->FrameDetectResultSaveVideo(vImg);
 	//释放vector的内存空间，防止内存泄漏
 	//释放vector申请的内存空间，防止内存泄漏
 	vImg.clear();
@@ -334,4 +334,32 @@ void test_traverseFolderBFS() {
 	traverseFolder_handler2 tfh = printString;
 	string path = "E:\\周晓董视频备份\\客厅电视柜上";
 	FolderUtil::traverseFolderBFS(path, tfh);
+}
+SingleConsumerSingleProducer<int> ss;
+int kItemsToProduce = 10;
+void ProducerTask() // 生产者任务
+{
+	for (int i = 1; i <= kItemsToProduce; ++i) {
+		// std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::cout << "Produce the " << i << "^th item..." << std::endl;
+		ss.ProduceItem(i); // 循环生产 kItemsToProduce 个产品.
+	}
+}
+
+void ConsumerTask() // 消费者任务
+{
+	static int cnt = 0;
+	while (1) {
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+		int item = ss.ConsumeItem(); // 消费一个产品.
+		std::cout << "Consume the " << item << "^th item" << std::endl;
+		if (++cnt == kItemsToProduce) break; // 如果产品消费个数为 kItemsToProduce, 则退出.
+	}
+}
+
+void test_SingleConsumerSingleProducer_class() {
+	std::thread producer(ProducerTask); // 创建生产者线程.
+	std::thread consumer(ConsumerTask); // 创建消费之线程.
+	producer.join();
+	consumer.join();
 }

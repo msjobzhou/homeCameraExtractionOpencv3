@@ -15,8 +15,13 @@ Mat convertTo3Channels(const Mat& binImg)
     merge(channels,three_channel);
     return three_channel;
 }
-
-bool FrameDiffDetect::FrameDetectResult(const vector<Mat> &imgFrame) {
+/*
+函数作用：检测从视频提取出来的一系列帧，相邻之间的帧经过帧间差的计算-》二值化-》腐蚀（去噪）之后，查找看看有没有轮廓
+面积大于300的，如果有则认为，这段时间内的视频有较大的变化，并返回true，否则返回false。同时此函数还会将面积大于300的帧间
+轮廓用长方形圈起来，并保存到一个视频文件中
+说明：这个函数中用到的一些诸如300之类的魔鬼数字都是经验值，此函数主要的目的也是测试用，真正使用的函数是FrameDetectResult
+*/
+bool FrameDiffDetect::FrameDetectResultSaveVideo(const vector<Mat> &imgFrame) {
 	int count = imgFrame.size();
 	RNG rng(12345);
 	if (count <= 1) {
@@ -40,7 +45,7 @@ bool FrameDiffDetect::FrameDetectResult(const vector<Mat> &imgFrame) {
 	//cout<<lastFrame.size()<<endl;
 	if (!writer.isOpened()) {
 		std::cout << "Error!Video File is not open..." << endl;
-		return -1;
+		return false;
 	}
 	//
 
@@ -87,26 +92,67 @@ bool FrameDiffDetect::FrameDetectResult(const vector<Mat> &imgFrame) {
 			rectangle(threeChannelFrameOut, boundRect[i].tl(), boundRect[i].br(), cv::Scalar(0, 255, 0), 3, 8, 0);
 
 		}
-		/*
-		//显示图片
-		cout << "show contours" << endl;
-		/// Show in a window
-		imshow("Contours", drawing);
-		waitKey();
-		*/
-
-		
+				
 		//写入视频
 
 		writer << threeChannelFrameOut;
-		//imshow("video", threeChannelFrameOut);
-		if (cvWaitKey(20) == 27)
-		{
-			break;
-		}
 		
 		lastFrame = frame;
 
 	}
 	writer.release();
+}
+/*
+函数作用：检测从视频提取出来的一系列帧，相邻之间的帧经过帧间差的计算-》二值化-》腐蚀（去噪）之后，查找看看有没有轮廓
+面积大于300的，如果有则认为，这段时间内的视频有较大的变化，并返回true，否则返回false。
+此函数里面的300等值来自于FrameDetectResultSaveVideo中调测的经验值
+*/
+bool FrameDiffDetect::FrameDetectResult(const vector<Mat> &imgFrame) {
+	int count = imgFrame.size();
+	RNG rng(12345);
+	if (count <= 1) {
+		cerr << "the count of imgFrame is less than 2" << endl;
+		return false;
+	}
+
+	Mat lastFrame = imgFrame[0], frame;
+	Mat frameDiff, frameDiffThresh, frameDiffThreshOpen;
+
+	Mat frameOut;
+
+	int frameDiffCount_ContourAreaGreaterThan300 = 0;
+	for (int i = 1; i < count; i++) {
+		frame = imgFrame[i];
+		//图像差分
+		absdiff(lastFrame, frame, frameDiff);
+		//图像二值化
+		threshold(frameDiff, frameDiffThresh, 25, 255, cv::THRESH_BINARY);
+		//腐蚀
+		Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));
+		//morphologyEx(frameDiffThresh, frameDiffThreshOpen, MORPH_DILATE, element);
+		//下面注释掉的这个语句是测试代码，主要是看看如果注释掉 erode这行，会产生啥效果
+		//frameDiffThresh.copyTo(frameDiffThreshOpen);
+		erode(frameDiffThresh, frameDiffThreshOpen, element, cv::Point(-1, -1), 1);
+
+		//查找轮廓
+		/// Find contours
+		vector<vector<Point> > contours;
+		findContours(frameDiffThreshOpen, contours, cv::noArray(), RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+		vector<Rect> boundRect(contours.size());
+		for (size_t i = 0; i < contours.size(); i++)
+		{
+			boundRect[i] = boundingRect(Mat(contours[i]));
+			//每个帧间差中如果有一个轮廓面积大于300，则把计数加1
+			if (contourArea(contours[i]) > 300) {
+				frameDiffCount_ContourAreaGreaterThan300++;
+				break;
+			}
+		}
+		lastFrame = frame;
+	}
+	//如果有3个帧间差，其有面积大于300的轮廓，则认为这个视频画面变化较大，并返回true 
+	if (frameDiffCount_ContourAreaGreaterThan300 >= 3)
+		return true;
+
+	return false;
 }
