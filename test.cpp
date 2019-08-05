@@ -25,8 +25,8 @@
 #include "SingleConsumerSingleProducer.hpp"
 
 using namespace cv;
-vector<string> gVecFolder;
-vector<string> gVecFile;
+vector<string> gVecFolderTest;
+vector<string> gVecFileTest;
 
 void test_zhongwen() {
 	std::wcout << "User-preferred locale setting is " << std::locale("").name().c_str() << '\n';
@@ -64,14 +64,14 @@ void test_FolderHasFiles() {
 	cout << FolderUtil::FolderHasFiles(path1) << endl;
 }
 
-void tfh_sqlite(string& path) {
+void tfh_sqliteTest(string& path) {
 	if (FolderUtil::isFolder(path.c_str())) {
 		if (FolderUtil::FolderHasFiles(path))
-			gVecFolder.push_back(path);
+			gVecFolderTest.push_back(path);
 	}
 }
-void lfh_sqlite(string& file) {
-	gVecFile.push_back(file);
+void lfh_sqliteTest(string& file) {
+	gVecFileTest.push_back(file);
 }
 
 void test_Database_class() {
@@ -100,18 +100,18 @@ void test_Database_class() {
 		string id = utf8_to_gbk(oneRow.at(0));
 		string initialPath = utf8_to_gbk(oneRow.at(1));
 		//将此初始目录下的子文件夹（含有文件的）加入到sqlite数据中的ScanDirectory表
-		traverseFolder_handler2 tfh = tfh_sqlite;
+		traverseFolder_handler2 tfh = tfh_sqliteTest;
 		FolderUtil::traverseFolderBFS(initialPath, tfh);
 
-		vector<string>::iterator vFolder = gVecFolder.begin();
-		while (vFolder != gVecFolder.end()) {
+		vector<string>::iterator vFolder = gVecFolderTest.begin();
+		while (vFolder != gVecFolderTest.end()) {
 			cout << *vFolder << endl;
 			//插入数据库
 			pdb->m_SDtable.insert(NULL, atoi(id.c_str()), gbk_to_utf8(*vFolder));
 			vFolder++;
 		}
-		gVecFolder.clear();
-		vector<string>(gVecFolder).swap(gVecFolder);
+		gVecFolderTest.clear();
+		vector<string>(gVecFolderTest).swap(gVecFolderTest);
 		v++;
 	}
 	oneRow.clear();
@@ -134,18 +134,18 @@ void test_Database_class() {
 		string id = utf8_to_gbk(oneRow.at(0));
 		string scanPath = utf8_to_gbk(oneRow.at(2));
 		//将此scan目录下的文件名加入到sqlite数据中的ScanFile表
-		listFile_handler lfh = lfh_sqlite;
+		listFile_handler lfh = lfh_sqliteTest;
 		FolderUtil::listFiles(scanPath, lfh);
 
-		vector<string>::iterator iterFile = gVecFile.begin();
-		while (iterFile != gVecFile.end()) {
+		vector<string>::iterator iterFile = gVecFileTest.begin();
+		while (iterFile != gVecFileTest.end()) {
 			cout << *iterFile << endl;
 			//插入数据库
 			pdb->m_SFtable.insert(NULL, atoi(id.c_str()), gbk_to_utf8(*iterFile));
 			iterFile++;
 		}
-		gVecFile.clear();
-		vector<string>(gVecFile).swap(gVecFile);
+		gVecFileTest.clear();
+		vector<string>(gVecFileTest).swap(gVecFileTest);
 		v++;
 	}
 	oneRow.clear();
@@ -153,6 +153,7 @@ void test_Database_class() {
 	results.clear();
 	vector<vector<string>>(results).swap(results);
 
+	delete pdb;
 }
 
 
