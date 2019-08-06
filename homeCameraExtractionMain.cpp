@@ -130,7 +130,17 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 	//从sqlite中一次读10个未处理的文件，具体的读取方法是初次读取时利用SQL语句找到未处理文件ID最小的那个
 	//然后从这个ID开始读取时刻10个处理的文件，并将这次读取中最大的ID的后一个作为下次读取10个文件的起始ID，
 	//并以此类推循环读下去
-	while (!g_bOver) {
+	while (true) {
+		if (g_bOver)
+			break;
+		//用户触发的中断如果发生在这里,即另一个线程将g_bOver设置成true,同时这个时候cpu执行切换到了消费
+		//者线程且恰好消费的商品数等于生产的商品数,这个时候就会导致消费者线程退出,但生产者线程还会继续走下
+		//去,并且放到缓冲区的商品将没有消费者线程再处理了,不过这种场景也没啥太大的问题,逻辑上符合用户触发
+		//程序终止的逻辑设定,本身用户触发程序终止的意思就是在还没有处理完待处理的视频文件就终止
+
+		//从数据库中读取待处理的文件,如果读取到未处理的视频文件的记录
+		//先将已经生成的商品数量加1,然后再放到缓冲区,如果读取到的记录数小于10个,则设置g_bOver为true
+		//生产者线程自行终止
 		videoReadSubmit2ThreadPool.ProduceItem(i);
 
 		//如果数据库中读取的记录个数小于10个，则设置g_bOver为true
@@ -143,11 +153,16 @@ void ConsumerTask_SubmitVideoFile2ThreadPool() // 消费者任务
 	//消费者在缓冲区非空且线程池thread_pool中的task任务个数小于等于5的情况下，
 	//从缓冲区中取到待处理的视频文件（以slot为单位，每次10个文件），
 	//执行thread_pool类的submit函数提交视频处理任务
-	while (!g_bOver) {
-		while (tpVideoProcess.taskNumber <= 5) {
+	while (true) { 
+		if (g_bOver&&消费的商品数等于生产的商品数)
+			break;
+
+		while (消费的商品数小于生产的商品数&&tpVideoProcess.taskNumber <= 5) {
 			item = videoReadSubmit2ThreadPool.ConsumeItem(); // 消费一个产品.
-			tpVideoProcess.submit(funcVideoProcess);
+			//提交thread_pool
 		}
+		//休眠1秒，等待thread_pool处理视频
+		sleep(1)
 	}
 		
 }
