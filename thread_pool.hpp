@@ -67,6 +67,10 @@ public:
 		std::lock_guard<std::mutex> lk(mut);
 		return data_queue.empty();
 	}
+	bool size() {
+		std::lock_guard<std::mutex> lk(mut);
+		return data_queue.size();
+	}
 };
 
 class join_threads
@@ -146,6 +150,10 @@ public:
 	void submit(FunctionType f)
 	{
 		work_queue.push(std::function<void()>(f));
+	}
+	int workQueueSize()
+	{
+		return work_queue.size();
 	}
 };
 

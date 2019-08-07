@@ -267,6 +267,41 @@ void Database::ScanFile::update_bDeleteAlready(int id, bool bDeleteAlready) {
 
 }
 
+void Database::ScanFile::query(vector<vector<string> > &results, string sqlQuery)
+{
+	sqlite3_stmt *pStatement;
+	const char* query = sqlQuery.c_str();
+	if (sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0) == SQLITE_OK)
+	{
+		int cols = sqlite3_column_count(pStatement);
+		int result = 0;
+		while (true)
+		{
+			result = sqlite3_step(pStatement);
+
+			if (result == SQLITE_ROW)
+			{
+				vector<string> values;
+				for (int col = 0; col < cols; col++)
+				{
+					values.push_back((char*)sqlite3_column_text(pStatement, col));
+				}
+				results.push_back(values);
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		sqlite3_finalize(pStatement);
+	}
+
+	string error = sqlite3_errmsg(m_pParentDB->m_pdb);
+	if (error != "not an error") cout << query << " " << error << endl;
+
+}
+
 void Database::closeDB()
 {
 	sqlite3_close(m_pdb);

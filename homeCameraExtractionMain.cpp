@@ -130,6 +130,8 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 	//从sqlite中一次读10个未处理的文件，具体的读取方法是初次读取时利用SQL语句找到未处理文件ID最小的那个
 	//然后从这个ID开始读取时刻10个处理的文件，并将这次读取中最大的ID的后一个作为下次读取10个文件的起始ID，
 	//并以此类推循环读下去
+	int initialID = 1;
+	char chInitialID[16] = {0};
 	while (true) {
 		if (g_bOver)
 			break;
@@ -138,12 +140,43 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 		//去,并且放到缓冲区的商品将没有消费者线程再处理了,不过这种场景也没啥太大的问题,逻辑上符合用户触发
 		//程序终止的逻辑设定,本身用户触发程序终止的意思就是在还没有处理完待处理的视频文件就终止
 
-		//从数据库中读取待处理的文件,如果读取到未处理的视频文件的记录
+		//从数据库中读取待处理的文件,如果读取到有未处理的视频文件的记录
+		vector<vector<string> > results;
+		vector<string> oneRow;
+		vector<string> vecProduceItem;
+		itoa(initialID, chInitialID, 10);
+		string sqlQuery = string("select * from ScanFile where ID >= ") + string(chInitialID)
+			+ string("limit 10;");
+		g_pdb->m_SFtable.query(results, sqlQuery);
+		if (!results.empty()) {
+			vector<vector<string> >::iterator v = results.begin();
+			while (v != results.end()) {
+				oneRow = *v;
+
+				//从查询的每行记录的第二列中得到 ScanDirectoryID，第三列中得到FileName
+				string scanDirectoryID = utf8_to_gbk(oneRow.at(1));
+				string fileName = utf8_to_gbk(oneRow.at(2));
+				//根据scanDirectoryID从ScanDirectory表中读取到目录，并将此目录和FileName组合成一个完整的绝对路径
+				string absoluteFilePath = fileName;
+				//将完整绝对路径文件名放到一个vector<string>中
+				vecProduceItem.push_back(absoluteFilePath);
+				v++;
+			}
+		}
 		//先将已经生成的商品数量加1,然后再放到缓冲区,如果读取到的记录数小于10个,则设置g_bOver为true
 		//生产者线程自行终止
-		videoReadSubmit2ThreadPool.ProduceItem(i);
+		videoReadSubmit2ThreadPool.ProduceItem(vecProduceItem);
 
 		//如果数据库中读取的记录个数小于10个，则设置g_bOver为true
+
+
+		vecProduceItem.clear();
+		vector<string>(vecProduceItem).swap(vecProduceItem);
+		oneRow.clear();
+		vector<string>(oneRow).swap(oneRow);
+		results.clear();
+		vector<vector<string>>(results).swap(results);
+
 	}
 }
 

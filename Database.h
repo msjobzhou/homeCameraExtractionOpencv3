@@ -39,5 +39,6 @@ public:
 		void insert(int id, int ScanDirectoryID, string fileName);
 		void update_bDeleteMark(int id, bool bDeleteMark);
 		void update_bDeleteAlready(int id, bool bDeleteAlready);
+		void query(vector<vector<string> > &results, string sqlQuery);
 	} m_SFtable;
 };
