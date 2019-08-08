@@ -155,6 +155,10 @@ public:
 	{
 		return work_queue.size();
 	}
+	void terminate()
+	{
+		done = true;
+	}
 };
 
 

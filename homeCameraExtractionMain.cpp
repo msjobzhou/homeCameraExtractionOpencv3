@@ -23,6 +23,8 @@
 #include "SingleConsumerSingleProducer.hpp"
 #include <atomic>
 #include <vector>
+#include<functional>
+
 
 using namespace std;
 
@@ -124,6 +126,9 @@ void InitVideoFileDatabase() {
 
 
 SingleConsumerSingleProducer<vector<string>> videoReadSubmit2ThreadPool;
+atomic<int> gItemNumProduced = 0;
+int gItemNumConsumed = 0;
+thread_pool g_tpVideoProcess(-1);
 
 void ProducerTask_ReadVideoFromDB() // 生产者任务
 {
@@ -165,10 +170,12 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 		}
 		//先将已经生成的商品数量加1,然后再放到缓冲区,如果读取到的记录数小于10个,则设置g_bOver为true
 		//生产者线程自行终止
+		gItemNumProduced++;
 		videoReadSubmit2ThreadPool.ProduceItem(vecProduceItem);
 
 		//如果数据库中读取的记录个数小于10个，则设置g_bOver为true
-
+		if (results.size() < 10)
+			g_bOver = true;
 
 		vecProduceItem.clear();
 		vector<string>(vecProduceItem).swap(vecProduceItem);
@@ -180,22 +187,46 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 	}
 }
 
+
+void videoProceed(vector<string> vecVideoAbsolutePath) {
+	vector<string>::iterator v = vecVideoAbsolutePath.begin();
+	vector<bool> bVecResult;
+	while (v != vecVideoAbsolutePath.end()) {
+		vector<Mat> vImg;
+		string videoAbsolutePath=*v;
+		char fileName[100] = {0};
+		char filePath[255] = {0};
+		FolderUtil::getFolderAndFilename((char*)videoAbsolutePath.c_str(),filePath,fileName);
+		int period = 30;
+		VideoUtil::readVideo(fileName, filePath, period, vImg);
+		FrameDiffDetect *pFd = new FrameDiffDetect();
+		bVecResult.push_back(pFd->FrameDetectResult(vImg));
+		//释放vector的内存空间，防止内存泄漏
+		//释放vector申请的内存空间，防止内存泄漏
+		vImg.clear();
+		vector<Mat>(vImg).swap(vImg);
+		v++;
+	}
+	//将处理的视频结果写入sqlite数据库
+}
+
 void ConsumerTask_SubmitVideoFile2ThreadPool() // 消费者任务
 {
-	thread_pool tpVideoProcess(-1);
+	
 	//消费者在缓冲区非空且线程池thread_pool中的task任务个数小于等于5的情况下，
 	//从缓冲区中取到待处理的视频文件（以slot为单位，每次10个文件），
 	//执行thread_pool类的submit函数提交视频处理任务
 	while (true) { 
-		if (g_bOver&&消费的商品数等于生产的商品数)
+		if (g_bOver&&(gItemNumConsumed == gItemNumConsumed))
 			break;
 
-		while (消费的商品数小于生产的商品数&&tpVideoProcess.taskNumber <= 5) {
-			item = videoReadSubmit2ThreadPool.ConsumeItem(); // 消费一个产品.
+		while ((gItemNumConsumed < gItemNumConsumed) && g_tpVideoProcess.workQueueSize() <= 5) {
+			vector<string> vecConsumedItem = videoReadSubmit2ThreadPool.ConsumeItem(); // 消费一个产品.
 			//提交thread_pool
+			g_tpVideoProcess.submit(std::bind(videoProceed, vecConsumedItem));
 		}
 		//休眠1秒，等待thread_pool处理视频
-		sleep(1)
+		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
 		
 }
@@ -208,7 +239,10 @@ void homeCameraExtractionMainLoop() {
 	std::thread consumer(ConsumerTask_SubmitVideoFile2ThreadPool); // 创建消费之线程.
 	producer.join();
 	consumer.join();
-
+	/*
+	主线程在等待生产者和消费者线程都结束以后，启动一个定时器，定时扫描threadPool线程池的任务队列是否为空，
+	如果为空，在主线程在等待60s之后（给写入数据库视频处理结果的线程预留写入的机会），结束整个流程
+	*/
 
 	if (g_pdb != NULL)
 		delete g_pdb;
