@@ -25,12 +25,15 @@
 #include <vector>
 #include<functional>
 
+#include <assert.h>
+
 
 using namespace std;
 
 vector<string> gVecFolder;
 vector<string> gVecFile;
-Database *g_pdb=NULL;
+//Database *g_pdb=NULL;
+char *g_pDbName = "C:\\Users\\chao\\gitRepo\\learnPython\\testdb_cpp.db";
 std::atomic<bool> g_bOver=false;
 
 void tfh_sqlite(string& path) {
@@ -44,20 +47,23 @@ void lfh_sqlite(string& file) {
 }
 
 void InitVideoFileDatabase() {
-	char *pDbName = "C:\\Users\\chao\\gitRepo\\learnPython\\testdb_cpp.db";
-	g_pdb = new Database(pDbName);
+	//设置sqlite为多线程串行模式
+	int rc = sqlite3_config(SQLITE_CONFIG_SERIALIZED);
+	cout << "sqlite3_config_result :" << rc << endl;
+	//char *pDbName = "C:\\Users\\chao\\gitRepo\\learnPython\\testdb_cpp.db";
+	Database *pdb = new Database(g_pDbName);
 	char *path1 = "E:\\周晓董视频备份\\客厅墙上";
 	char *path2 = "E:\\周晓董视频备份\\客厅电视柜上";
 	// 插入操作第一个参数ID是个自增字段
-	g_pdb->m_IDtable.insert(NULL, gbk_to_utf8(path1));
-	g_pdb->m_IDtable.insert(NULL, gbk_to_utf8(path2));
+	pdb->m_IDtable.insert(NULL, gbk_to_utf8(path1));
+	pdb->m_IDtable.insert(NULL, gbk_to_utf8(path2));
 
 	vector<vector<string> > results;
 	vector<string> oneRow;
 
 	//查询InitialDirectory这个数据库表，并根据得到的初始文件夹目录，并在初始目录下进一步去遍历得到其下有文件的
 	//子文件夹，并将其插入ScanDirectory的数据库表
-	g_pdb->m_IDtable.query(results);
+	pdb->m_IDtable.query(results);
 
 	vector<vector<string> >::iterator v = results.begin();
 	while (v != results.end()) {
@@ -76,7 +82,7 @@ void InitVideoFileDatabase() {
 		while (vFolder != gVecFolder.end()) {
 			cout << *vFolder << endl;
 			//插入数据库
-			g_pdb->m_SDtable.insert(NULL, atoi(id.c_str()), gbk_to_utf8(*vFolder));
+			pdb->m_SDtable.insert(NULL, atoi(id.c_str()), gbk_to_utf8(*vFolder));
 			vFolder++;
 		}
 		gVecFolder.clear();
@@ -91,7 +97,7 @@ void InitVideoFileDatabase() {
 
 	//查询ScanDirectory这个数据库表，并根据得到的文件夹目录，进一步去遍历得到其下的文件名
 	//并将其插入ScanFile的数据库表
-	g_pdb->m_SDtable.query(results);
+	pdb->m_SDtable.query(results);
 
 	v = results.begin();
 	while (v != results.end()) {
@@ -110,7 +116,7 @@ void InitVideoFileDatabase() {
 		while (iterFile != gVecFile.end()) {
 			cout << *iterFile << endl;
 			//插入数据库
-			g_pdb->m_SFtable.insert(NULL, atoi(id.c_str()), gbk_to_utf8(*iterFile));
+			pdb->m_SFtable.insert(NULL, atoi(id.c_str()), gbk_to_utf8(*iterFile));
 			iterFile++;
 		}
 		gVecFile.clear();
@@ -121,7 +127,8 @@ void InitVideoFileDatabase() {
 	vector<string>(oneRow).swap(oneRow);
 	results.clear();
 	vector<vector<string>>(results).swap(results);
-
+	if (pdb != NULL)
+		delete pdb;
 }
 
 
@@ -132,6 +139,7 @@ thread_pool g_tpVideoProcess(-1);
 
 void ProducerTask_ReadVideoFromDB() // 生产者任务
 {
+	Database *pdb = new Database(g_pDbName);
 	//从sqlite中一次读10个未处理的文件，具体的读取方法是初次读取时利用SQL语句找到未处理文件ID最小的那个
 	//然后从这个ID开始读取时刻10个处理的文件，并将这次读取中最大的ID的后一个作为下次读取10个文件的起始ID，
 	//并以此类推循环读下去
@@ -152,21 +160,40 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 		itoa(initialID, chInitialID, 10);
 		string sqlQuery = string("select * from ScanFile where ID >= ") + string(chInitialID)
 			+ string("limit 10;");
-		g_pdb->m_SFtable.query(results, sqlQuery);
+		pdb->m_SFtable.query(results, sqlQuery);
 		if (!results.empty()) {
 			vector<vector<string> >::iterator v = results.begin();
+			vector<vector<string> > resultsDirectory;
+			vector<string> oneRowDirectory;
+			string scanDirectoryID;
+			string fileName;
 			while (v != results.end()) {
 				oneRow = *v;
 
 				//从查询的每行记录的第二列中得到 ScanDirectoryID，第三列中得到FileName
-				string scanDirectoryID = utf8_to_gbk(oneRow.at(1));
-				string fileName = utf8_to_gbk(oneRow.at(2));
-				//根据scanDirectoryID从ScanDirectory表中读取到目录，并将此目录和FileName组合成一个完整的绝对路径
-				string absoluteFilePath = fileName;
+				scanDirectoryID = utf8_to_gbk(oneRow.at(1));
+				fileName = utf8_to_gbk(oneRow.at(2));
+				//根据scanDirectoryID从ScanDirectory表中读取到目录，
+				//并将此目录和FileName组合成一个完整的绝对路径
+				string sqlQueryDirectory = string("select * from ScanDirectory where ID = ")
+					+ oneRow.at(1);
+				pdb->m_SDtable.query(resultsDirectory, sqlQueryDirectory);
+				//断言这个查询记录只有1条
+				assert(resultsDirectory.size() == 1);
+				oneRowDirectory = resultsDirectory.at(0);
+				//ScanDirectory表的第三列是path
+				string absoluteFilePath = oneRowDirectory.at(2) + '\\' + fileName;
 				//将完整绝对路径文件名放到一个vector<string>中
 				vecProduceItem.push_back(absoluteFilePath);
+				
+				resultsDirectory.clear();
+				vector<vector<string>>(resultsDirectory).swap(resultsDirectory);
+				oneRowDirectory.clear();
+				vector<string>(oneRowDirectory).swap(oneRowDirectory);
+				
 				v++;
 			}
+			initialID = atoi(scanDirectoryID.c_str())+1;
 		}
 		//先将已经生成的商品数量加1,然后再放到缓冲区,如果读取到的记录数小于10个,则设置g_bOver为true
 		//生产者线程自行终止
@@ -185,12 +212,19 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 		vector<vector<string>>(results).swap(results);
 
 	}
+
+	if (pdb != NULL)
+		delete pdb;
 }
 
 
 void videoProceed(vector<string> vecVideoAbsolutePath) {
+	Database *pdb = new Database(g_pDbName);
 	vector<string>::iterator v = vecVideoAbsolutePath.begin();
-	vector<bool> bVecResult;
+	vector<vector<string> > resultsDirectory;
+	vector<string> oneRowDirectory;
+	vector<vector<string> > resultsFile;
+	vector<string> oneRowFile;
 	while (v != vecVideoAbsolutePath.end()) {
 		vector<Mat> vImg;
 		string videoAbsolutePath=*v;
@@ -199,15 +233,48 @@ void videoProceed(vector<string> vecVideoAbsolutePath) {
 		FolderUtil::getFolderAndFilename((char*)videoAbsolutePath.c_str(),filePath,fileName);
 		int period = 30;
 		VideoUtil::readVideo(fileName, filePath, period, vImg);
+		//先从ScanDirectory表中根据filePath找到ID
+		string sqlQueryDirectory = string("select * from ScanDirectory where Path = ")
+			+ filePath;
+		pdb->m_SDtable.query(resultsDirectory, sqlQueryDirectory);
+		assert(resultsDirectory.size() == 1);
+		oneRowDirectory = resultsDirectory.at(0);
+		//ScanDirectory表的第一列是ID
+		string ScanDirectoryID = oneRowDirectory.at(0);
+		//根据ScanDirectoryID和fileName从ScanFile表中找到对应的记录的ID
+		string sqlQueryFile = string("select * from ScanFile where ScanDirectoryID = ")
+			+ ScanDirectoryID + "and FileName = " + fileName;
+		pdb->m_SFtable.query(resultsDirectory, sqlQueryFile);
+		assert(resultsFile.size() == 1);
+		oneRowFile = resultsFile.at(0);
+		string id = oneRowFile.at(0);
+
+		//将处理的视频结果写入sqlite数据库
 		FrameDiffDetect *pFd = new FrameDiffDetect();
-		bVecResult.push_back(pFd->FrameDetectResult(vImg));
+
+		pdb->m_SFtable.update_bDeleteMark(atoi(id.c_str()), pFd->FrameDetectResult(vImg));
 		//释放vector的内存空间，防止内存泄漏
+		resultsDirectory.clear();
+		vector<vector<string>>(resultsDirectory).swap(resultsDirectory);
+		oneRowDirectory.clear();
+		vector<string>(oneRowDirectory).swap(oneRowDirectory);
+		resultsFile.clear();
+		vector<vector<string>>(resultsFile).swap(resultsFile);
+		oneRowFile.clear();
+		vector<string>(oneRowFile).swap(oneRowFile);
 		//释放vector申请的内存空间，防止内存泄漏
 		vImg.clear();
 		vector<Mat>(vImg).swap(vImg);
 		v++;
 	}
-	//将处理的视频结果写入sqlite数据库
+	
+	
+
+	//释放内存
+	vecVideoAbsolutePath.clear();
+	vector<string>(vecVideoAbsolutePath).swap(vecVideoAbsolutePath);
+	if (pdb != NULL)
+		delete pdb;
 }
 
 void ConsumerTask_SubmitVideoFile2ThreadPool() // 消费者任务
@@ -217,11 +284,12 @@ void ConsumerTask_SubmitVideoFile2ThreadPool() // 消费者任务
 	//从缓冲区中取到待处理的视频文件（以slot为单位，每次10个文件），
 	//执行thread_pool类的submit函数提交视频处理任务
 	while (true) { 
-		if (g_bOver&&(gItemNumConsumed == gItemNumConsumed))
+		if (g_bOver && (gItemNumConsumed == gItemNumProduced))
 			break;
 
-		while ((gItemNumConsumed < gItemNumConsumed) && g_tpVideoProcess.workQueueSize() <= 5) {
+		while ((gItemNumConsumed < gItemNumProduced) && g_tpVideoProcess.workQueueSize() <= 5) {
 			vector<string> vecConsumedItem = videoReadSubmit2ThreadPool.ConsumeItem(); // 消费一个产品.
+			gItemNumConsumed++;
 			//提交thread_pool
 			g_tpVideoProcess.submit(std::bind(videoProceed, vecConsumedItem));
 		}
@@ -240,10 +308,15 @@ void homeCameraExtractionMainLoop() {
 	producer.join();
 	consumer.join();
 	/*
-	主线程在等待生产者和消费者线程都结束以后，启动一个定时器，定时扫描threadPool线程池的任务队列是否为空，
+	主线程在等待生产者和消费者线程都结束以后，每隔5s定时判断threadPool线程池的任务队列是否为空，
 	如果为空，在主线程在等待60s之后（给写入数据库视频处理结果的线程预留写入的机会），结束整个流程
 	*/
-
-	if (g_pdb != NULL)
-		delete g_pdb;
-}
+	while (1) {
+		std::this_thread::sleep_for(std::chrono::seconds(5));
+		if (g_tpVideoProcess.workQueueSize() == 0) {
+			break;
+		}
+	}
+	cout << "start waiting for 60s" << endl;
+	std::this_thread::sleep_for(std::chrono::seconds(60));
+} 

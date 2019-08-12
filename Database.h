@@ -24,6 +24,7 @@ public:
 		void insert(int id, string path);
 		void update(int id, string path);
 		void query(vector<vector<string> > &results);
+		
 	} m_IDtable;
 
 	class ScanDirectory {
@@ -31,6 +32,7 @@ public:
 		Database* m_pParentDB;
 		void insert(int id, int InitialDirectoryID, string path);
 		void query(vector<vector<string> > &results);
+		void query(vector<vector<string> > &results, string sqlQuery);
 	} m_SDtable;
 
 	class ScanFile {

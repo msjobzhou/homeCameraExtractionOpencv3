@@ -220,6 +220,41 @@ void Database::ScanDirectory::query(vector<vector<string> > &results)
 
 }
 
+void Database::ScanFile::query(vector<vector<string> > &results, string sqlQuery)
+{
+	sqlite3_stmt *pStatement;
+	const char* query = sqlQuery.c_str();
+	if (sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0) == SQLITE_OK)
+	{
+		int cols = sqlite3_column_count(pStatement);
+		int result = 0;
+		while (true)
+		{
+			result = sqlite3_step(pStatement);
+
+			if (result == SQLITE_ROW)
+			{
+				vector<string> values;
+				for (int col = 0; col < cols; col++)
+				{
+					values.push_back((char*)sqlite3_column_text(pStatement, col));
+				}
+				results.push_back(values);
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		sqlite3_finalize(pStatement);
+	}
+
+	string error = sqlite3_errmsg(m_pParentDB->m_pdb);
+	if (error != "not an error") cout << query << " " << error << endl;
+
+}
+
 void Database::ScanFile::insert(int id, int ScanDirectoryID, string fileName)
 {
 	sqlite3_stmt *pStatement;
@@ -259,12 +294,46 @@ void Database::ScanFile::insert(int id, int ScanDirectoryID, string fileName)
 }
 
 void Database::ScanFile::update_bDeleteMark(int id, bool bDeleteMark) {
+	sqlite3_stmt *pStatement;
+	char* query = "UPDATE ScanFile SET DeleteMark=@_DeleteMark WHERE ID=@_id;";
 
+	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
+	if (rc != SQLITE_OK) exit(-1);
+
+	int idx = -1;
+	idx = sqlite3_bind_parameter_index(pStatement, "@_id");
+	sqlite3_bind_int(pStatement, idx, id);
+	idx = sqlite3_bind_parameter_index(pStatement, "@_DeleteMark");
+	sqlite3_bind_int(pStatement, idx, bDeleteMark);
+
+	sqlite3_step(pStatement);
+
+	sqlite3_finalize(pStatement);
+
+	string error = sqlite3_errmsg(m_pParentDB->m_pdb);
+	if (error != "not an error") cout << query << " " << error << endl;
 
 }
 
 void Database::ScanFile::update_bDeleteAlready(int id, bool bDeleteAlready) {
+	sqlite3_stmt *pStatement;
+	char* query = "UPDATE ScanFile SET DeleteMark=@_bDeleteAlready WHERE ID=@_id;";
 
+	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
+	if (rc != SQLITE_OK) exit(-1);
+
+	int idx = -1;
+	idx = sqlite3_bind_parameter_index(pStatement, "@_id");
+	sqlite3_bind_int(pStatement, idx, id);
+	idx = sqlite3_bind_parameter_index(pStatement, "@_bDeleteAlready");
+	sqlite3_bind_int(pStatement, idx, bDeleteAlready);
+
+	sqlite3_step(pStatement);
+
+	sqlite3_finalize(pStatement);
+
+	string error = sqlite3_errmsg(m_pParentDB->m_pdb);
+	if (error != "not an error") cout << query << " " << error << endl;
 }
 
 void Database::ScanFile::query(vector<vector<string> > &results, string sqlQuery)
