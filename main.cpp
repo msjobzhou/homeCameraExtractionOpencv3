@@ -1,10 +1,7 @@
 #include"test.h"
 
+#include "homeCameraExtractionMain.h"
 
-
-#include<opencv2\opencv.hpp>
-
-using namespace cv;
 
 int main()
 {
@@ -36,7 +33,9 @@ int main()
 
 	//test_traverseFolderBFS();
 
-	test_SingleConsumerSingleProducer_class();
+	//test_SingleConsumerSingleProducer_class();
+
+	homeCameraExtractionMainLoop();
 
 	return 0;
 }

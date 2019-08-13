@@ -11,7 +11,7 @@
 #include "ReadWriteThread.h"
 #include "Timer.hpp"
 #include "thread_pool.hpp"
-#include "BenchmarkSqlite3.hpp"
+
 
 #include <iostream> 
 #include <string> 
@@ -19,7 +19,7 @@
 #include <codecvt> 
 #include <fstream> 
 
-#include "codeConvert.hpp"
+#include "codeConvert.h"
 #include "SingleConsumerSingleProducer.hpp"
 #include <atomic>
 #include <vector>
@@ -52,8 +52,8 @@ void InitVideoFileDatabase() {
 	cout << "sqlite3_config_result :" << rc << endl;
 	//char *pDbName = "C:\\Users\\chao\\gitRepo\\learnPython\\testdb_cpp.db";
 	Database *pdb = new Database(g_pDbName);
-	char *path1 = "E:\\周晓董视频备份\\客厅墙上";
-	char *path2 = "E:\\周晓董视频备份\\客厅电视柜上";
+	char *path1 = "E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\08";
+	char *path2 = "E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\09";
 	// 插入操作第一个参数ID是个自增字段
 	pdb->m_IDtable.insert(NULL, gbk_to_utf8(path1));
 	pdb->m_IDtable.insert(NULL, gbk_to_utf8(path2));
@@ -157,9 +157,9 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 		vector<vector<string> > results;
 		vector<string> oneRow;
 		vector<string> vecProduceItem;
-		itoa(initialID, chInitialID, 10);
+		_itoa(initialID, chInitialID, 10);
 		string sqlQuery = string("select * from ScanFile where ID >= ") + string(chInitialID)
-			+ string("limit 10;");
+			+ string(" limit 10;");
 		pdb->m_SFtable.query(results, sqlQuery);
 		if (!results.empty()) {
 			vector<vector<string> >::iterator v = results.begin();

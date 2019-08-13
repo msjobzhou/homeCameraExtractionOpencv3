@@ -30,3 +30,6 @@ void test_traverseFolderBFS();
 void ProducerTask();
 void ConsumerTask();
 void test_SingleConsumerSingleProducer_class();
+
+int test_thread_pool();
+void testTimer();

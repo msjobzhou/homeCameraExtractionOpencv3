@@ -229,6 +229,8 @@ void FolderUtil::traverseFolderBFS(string path, traverseFolder_handler2 tfh) {
 	}
 	queue<string> folderQueue;
 	folderQueue.push(path);
+	//回调函数负责对初始路径进行处理
+	tfh(path);
 	while (!folderQueue.empty()) {
 		string folder = folderQueue.front();
 		_finddata_t FileInfo;

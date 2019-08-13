@@ -162,21 +162,3 @@ public:
 };
 
 
-void f()
-{
-	long lTotal = 0;
-	for (int i = 0; i< 100000000; i++)
-		lTotal++;
-	std::cout << "lTotal:" << lTotal << "\n";
-}
-
-int test_thread_pool()
-{
-	thread_pool tp(1);
-	for (int i = 0; i<400; i++)
-	{
-		tp.submit(f);
-	}
-	std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-	return 0;
-}

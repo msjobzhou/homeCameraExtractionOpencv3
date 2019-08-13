@@ -220,7 +220,7 @@ void Database::ScanDirectory::query(vector<vector<string> > &results)
 
 }
 
-void Database::ScanFile::query(vector<vector<string> > &results, string sqlQuery)
+void Database::ScanDirectory::query(vector<vector<string> > &results, string sqlQuery)
 {
 	sqlite3_stmt *pStatement;
 	const char* query = sqlQuery.c_str();
