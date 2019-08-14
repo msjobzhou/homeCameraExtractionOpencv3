@@ -130,7 +130,12 @@ void Database::InitialDirectory::query(vector<vector<string> > &results)
 				vector<string> values;
 				for (int col = 0; col < cols; col++)
 				{
-					values.push_back((char*)sqlite3_column_text(pStatement, col));
+					if (NULL == sqlite3_column_text(pStatement, col)) {
+						values.push_back("NULL");
+					}
+					else {
+						values.push_back((char*)sqlite3_column_text(pStatement, col));
+					}
 				}
 				results.push_back(values);
 			}
@@ -202,7 +207,12 @@ void Database::ScanDirectory::query(vector<vector<string> > &results)
 				vector<string> values;
 				for (int col = 0; col < cols; col++)
 				{
-					values.push_back((char*)sqlite3_column_text(pStatement, col));
+					if (NULL == sqlite3_column_text(pStatement, col)) {
+						values.push_back("NULL");
+					}
+					else {
+						values.push_back((char*)sqlite3_column_text(pStatement, col));
+					}
 				}
 				results.push_back(values);
 			}
@@ -224,6 +234,7 @@ void Database::ScanDirectory::query(vector<vector<string> > &results, string sql
 {
 	sqlite3_stmt *pStatement;
 	const char* query = sqlQuery.c_str();
+	cout << "sqlQuery: " << sqlQuery << endl;
 	if (sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0) == SQLITE_OK)
 	{
 		int cols = sqlite3_column_count(pStatement);
@@ -237,7 +248,12 @@ void Database::ScanDirectory::query(vector<vector<string> > &results, string sql
 				vector<string> values;
 				for (int col = 0; col < cols; col++)
 				{
-					values.push_back((char*)sqlite3_column_text(pStatement, col));
+					if (NULL == sqlite3_column_text(pStatement, col)) {
+						values.push_back("NULL");
+					}
+					else {
+						values.push_back((char*)sqlite3_column_text(pStatement, col));
+					}
 				}
 				results.push_back(values);
 			}
@@ -353,7 +369,12 @@ void Database::ScanFile::query(vector<vector<string> > &results, string sqlQuery
 				vector<string> values;
 				for (int col = 0; col < cols; col++)
 				{
-					values.push_back((char*)sqlite3_column_text(pStatement, col));
+					if (NULL == sqlite3_column_text(pStatement, col)) {
+						values.push_back("NULL");
+					} 
+					else {
+						values.push_back((char*)sqlite3_column_text(pStatement, col));
+					}
 				}
 				results.push_back(values);
 			}

@@ -132,10 +132,10 @@ void InitVideoFileDatabase() {
 }
 
 
-SingleConsumerSingleProducer<vector<string>> videoReadSubmit2ThreadPool;
+SingleConsumerSingleProducer<vector<string>> gConsumerProducer_videoReadSubmit2ThreadPool;
 atomic<int> gItemNumProduced = 0;
 int gItemNumConsumed = 0;
-thread_pool g_tpVideoProcess(-1);
+thread_pool g_tpVideoProcess(1);
 
 void ProducerTask_ReadVideoFromDB() // 生产者任务
 {
@@ -159,7 +159,8 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 		vector<string> vecProduceItem;
 		_itoa(initialID, chInitialID, 10);
 		string sqlQuery = string("select * from ScanFile where ID >= ") + string(chInitialID)
-			+ string(" limit 10;");
+			+ string(" and DeleteMark is null limit 10;");
+		cout << "sqlQuery: " << sqlQuery << endl;
 		pdb->m_SFtable.query(results, sqlQuery);
 		if (!results.empty()) {
 			vector<vector<string> >::iterator v = results.begin();
@@ -167,16 +168,19 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 			vector<string> oneRowDirectory;
 			string scanDirectoryID;
 			string fileName;
+			string idPrimaryKey;
 			while (v != results.end()) {
 				oneRow = *v;
 
 				//从查询的每行记录的第二列中得到 ScanDirectoryID，第三列中得到FileName
 				scanDirectoryID = utf8_to_gbk(oneRow.at(1));
 				fileName = utf8_to_gbk(oneRow.at(2));
+				idPrimaryKey = utf8_to_gbk(oneRow.at(0));
 				//根据scanDirectoryID从ScanDirectory表中读取到目录，
 				//并将此目录和FileName组合成一个完整的绝对路径
 				string sqlQueryDirectory = string("select * from ScanDirectory where ID = ")
 					+ oneRow.at(1);
+				//cout << "sqlQueryDirectory: " << sqlQueryDirectory << endl;
 				pdb->m_SDtable.query(resultsDirectory, sqlQueryDirectory);
 				//断言这个查询记录只有1条
 				assert(resultsDirectory.size() == 1);
@@ -193,16 +197,19 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 				
 				v++;
 			}
-			initialID = atoi(scanDirectoryID.c_str())+1;
+			initialID = atoi(idPrimaryKey.c_str()) + 1;
 		}
 		//先将已经生成的商品数量加1,然后再放到缓冲区,如果读取到的记录数小于10个,则设置g_bOver为true
 		//生产者线程自行终止
 		gItemNumProduced++;
-		videoReadSubmit2ThreadPool.ProduceItem(vecProduceItem);
+		//gConsumerProducer_videoReadSubmit2ThreadPool.ProduceItem(vecProduceItem);
 
 		//如果数据库中读取的记录个数小于10个，则设置g_bOver为true
-		if (results.size() < 10)
+		if (results.size() < 10) {
 			g_bOver = true;
+			cout << "g_bOver is set to true" << endl;
+		}
+			
 
 		vecProduceItem.clear();
 		vector<string>(vecProduceItem).swap(vecProduceItem);
@@ -243,7 +250,7 @@ void videoProceed(vector<string> vecVideoAbsolutePath) {
 		string ScanDirectoryID = oneRowDirectory.at(0);
 		//根据ScanDirectoryID和fileName从ScanFile表中找到对应的记录的ID
 		string sqlQueryFile = string("select * from ScanFile where ScanDirectoryID = ")
-			+ ScanDirectoryID + "and FileName = " + fileName;
+			+ ScanDirectoryID + " and FileName = " + fileName;
 		pdb->m_SFtable.query(resultsDirectory, sqlQueryFile);
 		assert(resultsFile.size() == 1);
 		oneRowFile = resultsFile.at(0);
@@ -288,7 +295,7 @@ void ConsumerTask_SubmitVideoFile2ThreadPool() // 消费者任务
 			break;
 
 		while ((gItemNumConsumed < gItemNumProduced) && g_tpVideoProcess.workQueueSize() <= 5) {
-			vector<string> vecConsumedItem = videoReadSubmit2ThreadPool.ConsumeItem(); // 消费一个产品.
+			vector<string> vecConsumedItem = gConsumerProducer_videoReadSubmit2ThreadPool.ConsumeItem(); // 消费一个产品.
 			gItemNumConsumed++;
 			//提交thread_pool
 			g_tpVideoProcess.submit(std::bind(videoProceed, vecConsumedItem));
@@ -301,16 +308,17 @@ void ConsumerTask_SubmitVideoFile2ThreadPool() // 消费者任务
 
 
 void homeCameraExtractionMainLoop() {
-	InitVideoFileDatabase();
-
+	//InitVideoFileDatabase();
+	//ProducerTask_ReadVideoFromDB();
+	/*
 	std::thread producer(ProducerTask_ReadVideoFromDB); // 创建生产者线程.
 	std::thread consumer(ConsumerTask_SubmitVideoFile2ThreadPool); // 创建消费之线程.
 	producer.join();
 	consumer.join();
-	/*
-	主线程在等待生产者和消费者线程都结束以后，每隔5s定时判断threadPool线程池的任务队列是否为空，
-	如果为空，在主线程在等待60s之后（给写入数据库视频处理结果的线程预留写入的机会），结束整个流程
-	*/
+	
+	//主线程在等待生产者和消费者线程都结束以后，每隔5s定时判断threadPool线程池的任务队列是否为空，
+	//如果为空，在主线程在等待60s之后（给写入数据库视频处理结果的线程预留写入的机会），结束整个流程
+	
 	while (1) {
 		std::this_thread::sleep_for(std::chrono::seconds(5));
 		if (g_tpVideoProcess.workQueueSize() == 0) {
@@ -318,5 +326,5 @@ void homeCameraExtractionMainLoop() {
 		}
 	}
 	cout << "start waiting for 60s" << endl;
-	std::this_thread::sleep_for(std::chrono::seconds(60));
+	std::this_thread::sleep_for(std::chrono::seconds(60));*/
 } 
