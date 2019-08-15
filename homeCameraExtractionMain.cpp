@@ -135,7 +135,7 @@ void InitVideoFileDatabase() {
 SingleConsumerSingleProducer<vector<string>> gConsumerProducer_videoReadSubmit2ThreadPool;
 atomic<int> gItemNumProduced = 0;
 int gItemNumConsumed = 0;
-thread_pool g_tpVideoProcess(1);
+
 
 void ProducerTask_ReadVideoFromDB() // 生产者任务
 {
@@ -202,7 +202,7 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 		//先将已经生成的商品数量加1,然后再放到缓冲区,如果读取到的记录数小于10个,则设置g_bOver为true
 		//生产者线程自行终止
 		gItemNumProduced++;
-		//gConsumerProducer_videoReadSubmit2ThreadPool.ProduceItem(vecProduceItem);
+		gConsumerProducer_videoReadSubmit2ThreadPool.ProduceItem(vecProduceItem);
 
 		//如果数据库中读取的记录个数小于10个，则设置g_bOver为true
 		if (results.size() < 10) {
@@ -226,6 +226,7 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 
 
 void videoProceed(vector<string> vecVideoAbsolutePath) {
+	//传入的字符串是utf8格式,FolderUtil和videoUtil中的函数字符串路径全是gbk的,这里涉及到字符串格式转换
 	Database *pdb = new Database(g_pDbName);
 	vector<string>::iterator v = vecVideoAbsolutePath.begin();
 	vector<vector<string> > resultsDirectory;
@@ -235,31 +236,42 @@ void videoProceed(vector<string> vecVideoAbsolutePath) {
 	while (v != vecVideoAbsolutePath.end()) {
 		vector<Mat> vImg;
 		string videoAbsolutePath=*v;
+		string videoAbsolutePathGBK = utf8_to_gbk(videoAbsolutePath);
 		char fileName[100] = {0};
 		char filePath[255] = {0};
-		FolderUtil::getFolderAndFilename((char*)videoAbsolutePath.c_str(),filePath,fileName);
+		FolderUtil::getFolderAndFilename((char*)videoAbsolutePathGBK.c_str(), filePath, fileName);
 		int period = 30;
+		cout << "filePath:" << filePath << endl;
+		cout << "fileName:" << fileName << endl;
 		VideoUtil::readVideo(fileName, filePath, period, vImg);
-		//先从ScanDirectory表中根据filePath找到ID
+		//去掉路径中末尾的斜杠\
+		if (filePath[strlen(filePath) - 1] == '\\')
+			filePath[strlen(filePath) - 1] = '\0';
+		//先从ScanDirectory表中根据filePath找到ID,sqlite3数据库中存储的字符串格式是utf-8
 		string sqlQueryDirectory = string("select * from ScanDirectory where Path = ")
-			+ filePath;
-		pdb->m_SDtable.query(resultsDirectory, sqlQueryDirectory);
+			+ "\'" + gbk_to_utf8(filePath) + "\'";
+		cout << "sqlQueryDirectory: " << sqlQueryDirectory << endl;
+		pdb->m_SDtable.query(resultsDirectory, sqlQueryDirectory); 
+		cout << "resultsDirectory.size(): " << resultsDirectory.size() << endl;
 		assert(resultsDirectory.size() == 1);
 		oneRowDirectory = resultsDirectory.at(0);
 		//ScanDirectory表的第一列是ID
 		string ScanDirectoryID = oneRowDirectory.at(0);
 		//根据ScanDirectoryID和fileName从ScanFile表中找到对应的记录的ID
 		string sqlQueryFile = string("select * from ScanFile where ScanDirectoryID = ")
-			+ ScanDirectoryID + " and FileName = " + fileName;
-		pdb->m_SFtable.query(resultsDirectory, sqlQueryFile);
+			+ ScanDirectoryID + " and FileName = " + "\'" + gbk_to_utf8(fileName) + "\'";
+		cout << "sqlQueryFile: " << sqlQueryFile << endl;
+		pdb->m_SFtable.query(resultsFile, sqlQueryFile);
+		cout << "resultsFile.size(): " << resultsFile.size() << endl;
 		assert(resultsFile.size() == 1);
 		oneRowFile = resultsFile.at(0);
 		string id = oneRowFile.at(0);
 
 		//将处理的视频结果写入sqlite数据库
 		FrameDiffDetect *pFd = new FrameDiffDetect();
-
-		pdb->m_SFtable.update_bDeleteMark(atoi(id.c_str()), pFd->FrameDetectResult(vImg));
+		bool bResult = pFd->FrameDetectResult(vImg);
+		cout << "pFd->FrameDetectResult(vImg):" << bResult << endl;
+		pdb->m_SFtable.update_bDeleteMark(atoi(id.c_str()), bResult);
 		//释放vector的内存空间，防止内存泄漏
 		resultsDirectory.clear();
 		vector<vector<string>>(resultsDirectory).swap(resultsDirectory);
@@ -286,7 +298,7 @@ void videoProceed(vector<string> vecVideoAbsolutePath) {
 
 void ConsumerTask_SubmitVideoFile2ThreadPool() // 消费者任务
 {
-	
+	thread_pool tpVideoProcess(-1);
 	//消费者在缓冲区非空且线程池thread_pool中的task任务个数小于等于5的情况下，
 	//从缓冲区中取到待处理的视频文件（以slot为单位，每次10个文件），
 	//执行thread_pool类的submit函数提交视频处理任务
@@ -294,37 +306,52 @@ void ConsumerTask_SubmitVideoFile2ThreadPool() // 消费者任务
 		if (g_bOver && (gItemNumConsumed == gItemNumProduced))
 			break;
 
-		while ((gItemNumConsumed < gItemNumProduced) && g_tpVideoProcess.workQueueSize() <= 5) {
+		while ((gItemNumConsumed < gItemNumProduced) && tpVideoProcess.workQueueSize() <= 5) {
 			vector<string> vecConsumedItem = gConsumerProducer_videoReadSubmit2ThreadPool.ConsumeItem(); // 消费一个产品.
+			
+			//vector<string>::iterator v = vecConsumedItem.begin();
+			//cout << "vector<string> vecConsumedItem" << endl;
+			//while (v != vecConsumedItem.end()) {
+			//	cout << *v << endl;
+			//	v++;
+			//}
+
 			gItemNumConsumed++;
 			//提交thread_pool
-			g_tpVideoProcess.submit(std::bind(videoProceed, vecConsumedItem));
+			tpVideoProcess.submit(std::bind(videoProceed, vecConsumedItem));
 		}
-		//休眠1秒，等待thread_pool处理视频
-		std::this_thread::sleep_for(std::chrono::seconds(1));
+		//休眠2秒，等待thread_pool处理视频
+		std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
-		
-}
 
+	//消费者线程每隔5s定时判断threadPool线程池的任务队列是否为空，
+	//如果为空，在等待60s之后（给写入数据库视频处理结果的线程预留写入的机会），结束整个流程
 
-void homeCameraExtractionMainLoop() {
-	//InitVideoFileDatabase();
-	//ProducerTask_ReadVideoFromDB();
-	/*
-	std::thread producer(ProducerTask_ReadVideoFromDB); // 创建生产者线程.
-	std::thread consumer(ConsumerTask_SubmitVideoFile2ThreadPool); // 创建消费之线程.
-	producer.join();
-	consumer.join();
-	
-	//主线程在等待生产者和消费者线程都结束以后，每隔5s定时判断threadPool线程池的任务队列是否为空，
-	//如果为空，在主线程在等待60s之后（给写入数据库视频处理结果的线程预留写入的机会），结束整个流程
-	
 	while (1) {
 		std::this_thread::sleep_for(std::chrono::seconds(5));
-		if (g_tpVideoProcess.workQueueSize() == 0) {
+		if (tpVideoProcess.workQueueSize() == 0) {
 			break;
 		}
 	}
 	cout << "start waiting for 60s" << endl;
-	std::this_thread::sleep_for(std::chrono::seconds(60));*/
+	std::this_thread::sleep_for(std::chrono::seconds(60));
+		
+}
+void test_videoProceed()
+{
+	vector<string> vecVideoAbsolutePath;
+	vecVideoAbsolutePath.push_back(gbk_to_utf8("E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\08\\42.mp4"));
+	vecVideoAbsolutePath.push_back(gbk_to_utf8("E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\08\\43.mp4"));
+	videoProceed(vecVideoAbsolutePath);
+}
+
+void homeCameraExtractionMainLoop() {
+	//InitVideoFileDatabase();
+	
+	test_videoProceed();
+	/*std::thread producer(ProducerTask_ReadVideoFromDB); // 创建生产者线程.
+	std::thread consumer(ConsumerTask_SubmitVideoFile2ThreadPool); // 创建消费之线程.
+	producer.join();
+	consumer.join();*/
+	
 } 

@@ -105,11 +105,18 @@ period 帧间隔，每隔多少帧取其中一张截图
 vImg 把从视频中读取的图像全部拷贝一份保存在vector里，方便后续程序处理
 */
 int VideoUtil::readVideo(const char* fileName, const char* filePath, int period, vector<Mat> &vImg) {
+	//入参检查
+	if ((NULL == fileName) || (NULL == filePath))
+		return -1;
+	
 	//int period;
 	int count = 1; //文件编号开始计数值
 
 	string fileFullPath = "";
-	fileFullPath = fileFullPath + filePath + "\\" + fileName;
+	if (filePath[strlen(filePath) - 1] != '\\')
+		fileFullPath = fileFullPath + filePath + "\\" + fileName;
+	else 
+		fileFullPath = fileFullPath + filePath + fileName;
 	VideoCapture capture;
 	capture.open(fileFullPath.c_str()); //打开视频文件
 	//获取视频文件总共有多少帧

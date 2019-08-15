@@ -234,7 +234,7 @@ void Database::ScanDirectory::query(vector<vector<string> > &results, string sql
 {
 	sqlite3_stmt *pStatement;
 	const char* query = sqlQuery.c_str();
-	cout << "sqlQuery: " << sqlQuery << endl;
+	//cout << "sqlQuery: " << sqlQuery << endl;
 	if (sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0) == SQLITE_OK)
 	{
 		int cols = sqlite3_column_count(pStatement);

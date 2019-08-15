@@ -35,7 +35,7 @@ int main()
 
 	//test_SingleConsumerSingleProducer_class();
 
-	//homeCameraExtractionMainLoop();
+	homeCameraExtractionMainLoop();
 
 	return 0;
 }
