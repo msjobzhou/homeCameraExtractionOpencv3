@@ -1,6 +1,10 @@
 #include"test.h"
 
 #include "homeCameraExtractionMain.h"
+#include "BenchmarkOpencv.h"
+#include <iostream>
+
+using namespace std;
 
 
 int main()
@@ -35,7 +39,11 @@ int main()
 
 	//test_SingleConsumerSingleProducer_class();
 
-	homeCameraExtractionMainLoop();
+	//homeCameraExtractionMainLoop();
+
+	cout << "串行读120次文件耗时"<< calculateRunTime(testReadVideoSerial) << endl;
+
+	cout << "并行读120次文件耗时" << calculateRunTime(testReadVideo4ThreadsPrallel) << endl;
 
 	return 0;
 }
