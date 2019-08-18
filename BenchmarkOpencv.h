@@ -1,8 +1,8 @@
 #pragma once
-
+#include<functional>
 typedef void(*VOID_FUNC)();
 
-double calculateRunTime(VOID_FUNC pVoidFunc);
+double calculateRunTime(std::function<void()> pVoidFunc);
 
 void testCreateFileCapture();
 
@@ -21,3 +21,11 @@ void test_read_video();
 void testReadVideo4ThreadsPrallel();
 
 void testReadVideoSerial();
+
+int readVideoSeekPos(const char* filePath, int period);
+
+void testReadVideoSeekPos();
+
+int readVideoEveryFrame(const char* filePath, int period);
+
+void testReadVideoEveryFrame();

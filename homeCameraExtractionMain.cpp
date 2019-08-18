@@ -240,7 +240,7 @@ void videoProceed(vector<string> vecVideoAbsolutePath) {
 		char fileName[100] = {0};
 		char filePath[255] = {0};
 		FolderUtil::getFolderAndFilename((char*)videoAbsolutePathGBK.c_str(), filePath, fileName);
-		int period = 30;
+		int period = 50;
 		cout << "filePath:" << filePath << endl;
 		cout << "fileName:" << fileName << endl;
 		VideoUtil::readVideo(fileName, filePath, period, vImg);
@@ -348,10 +348,9 @@ void test_videoProceed()
 void homeCameraExtractionMainLoop() {
 	//InitVideoFileDatabase();
 	
-	test_videoProceed();
-	/*std::thread producer(ProducerTask_ReadVideoFromDB); // 创建生产者线程.
+	std::thread producer(ProducerTask_ReadVideoFromDB); // 创建生产者线程.
 	std::thread consumer(ConsumerTask_SubmitVideoFile2ThreadPool); // 创建消费之线程.
 	producer.join();
-	consumer.join();*/
+	consumer.join();
 	
 } 

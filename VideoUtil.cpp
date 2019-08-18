@@ -109,9 +109,6 @@ int VideoUtil::readVideo(const char* fileName, const char* filePath, int period,
 	if ((NULL == fileName) || (NULL == filePath))
 		return -1;
 	
-	//int period;
-	int count = 1; //文件编号开始计数值
-
 	string fileFullPath = "";
 	if (filePath[strlen(filePath) - 1] != '\\')
 		fileFullPath = fileFullPath + filePath + "\\" + fileName;
@@ -130,9 +127,6 @@ int VideoUtil::readVideo(const char* fileName, const char* filePath, int period,
 	Mat frame;
 	//string strSaveImgPath = "";
 	int nPos = period;
-	//从视频中抓取的图像，保存的文件名
-	char chFilename[128];
-	//while (1)
 	while (nPos <= numFrames && capture.grab())
 	{
 		capture.set(CV_CAP_PROP_POS_FRAMES, nPos);

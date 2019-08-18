@@ -39,11 +39,17 @@ int main()
 
 	//test_SingleConsumerSingleProducer_class();
 
-	//homeCameraExtractionMainLoop();
+	homeCameraExtractionMainLoop();
 
-	cout << "串行读120次文件耗时"<< calculateRunTime(testReadVideoSerial) << endl;
+	//cout << "1个线程串行读120次文件耗时"<< calculateRunTime(testReadVideoSerial) << endl;
 
-	cout << "并行读120次文件耗时" << calculateRunTime(testReadVideo4ThreadsPrallel) << endl;
+	//cout << "4个线程并行读120次文件耗时" << calculateRunTime(testReadVideo4ThreadsPrallel) << endl;
+
+	//cout << calculateRunTime(testCreateFileCapture) << endl;
+
+	//cout << calculateRunTime(testReadVideoSeekPos) << endl;
+	
+	//cout << calculateRunTime(testReadVideoEveryFrame) << endl;
 
 	return 0;
 }
