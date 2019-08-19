@@ -61,9 +61,10 @@ void InitVideoFileDatabase() {
 	vector<vector<string> > results;
 	vector<string> oneRow;
 
-	//查询InitialDirectory这个数据库表，并根据得到的初始文件夹目录，并在初始目录下进一步去遍历得到其下有文件的
+	//查询InitialDirectory这个数据库表，并根据得到的未处理的初始文件夹目录，并在初始目录下进一步去遍历得到其下有文件的
 	//子文件夹，并将其插入ScanDirectory的数据库表
-	pdb->m_IDtable.query(results);
+	string sqlQuery = string("select * from InitialDirectory where HandledMark != 1");
+	pdb->m_IDtable.query(results, sqlQuery);
 
 	vector<vector<string> >::iterator v = results.begin();
 	while (v != results.end()) {
@@ -80,11 +81,13 @@ void InitVideoFileDatabase() {
 
 		vector<string>::iterator vFolder = gVecFolder.begin();
 		while (vFolder != gVecFolder.end()) {
-			cout << *vFolder << endl;
+			//cout << *vFolder << endl;
 			//插入数据库
 			pdb->m_SDtable.insert(NULL, atoi(id.c_str()), gbk_to_utf8(*vFolder));
 			vFolder++;
 		}
+		//标记成对应的ID记录已经处理（写入到表ScanDirectory）
+		pdb->m_IDtable.update_bHandledMark(atoi(id.c_str()), true);
 		gVecFolder.clear();
 		vector<string>(gVecFolder).swap(gVecFolder);
 		v++;
@@ -95,9 +98,10 @@ void InitVideoFileDatabase() {
 	vector<vector<string>>(results).swap(results);
 
 
-	//查询ScanDirectory这个数据库表，并根据得到的文件夹目录，进一步去遍历得到其下的文件名
+	//查询ScanDirectory这个数据库表，并根据得到未处理的文件夹目录，进一步去遍历得到其下的文件名
 	//并将其插入ScanFile的数据库表
-	pdb->m_SDtable.query(results);
+	string sqlQuery2 = string("select * from ScanDirectory where HandledMark != 1");
+	pdb->m_SDtable.query(results, sqlQuery2);
 
 	v = results.begin();
 	while (v != results.end()) {
@@ -119,6 +123,8 @@ void InitVideoFileDatabase() {
 			pdb->m_SFtable.insert(NULL, atoi(id.c_str()), gbk_to_utf8(*iterFile));
 			iterFile++;
 		}
+		//标记成对应的ID记录已经处理（写入到表ScanDirectory）
+		pdb->m_SDtable.update_bHandledMark(atoi(id.c_str()), true);
 		gVecFile.clear();
 		vector<string>(gVecFile).swap(gVecFile);
 		v++;
@@ -160,7 +166,7 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 		_itoa(initialID, chInitialID, 10);
 		string sqlQuery = string("select * from ScanFile where ID >= ") + string(chInitialID)
 			+ string(" and DeleteMark is null limit 10;");
-		cout << "sqlQuery: " << sqlQuery << endl;
+		//cout << "sqlQuery: " << sqlQuery << endl;
 		pdb->m_SFtable.query(results, sqlQuery);
 		if (!results.empty()) {
 			vector<vector<string> >::iterator v = results.begin();
@@ -241,8 +247,8 @@ void videoProceed(vector<string> vecVideoAbsolutePath) {
 		char filePath[255] = {0};
 		FolderUtil::getFolderAndFilename((char*)videoAbsolutePathGBK.c_str(), filePath, fileName);
 		int period = 50;
-		cout << "filePath:" << filePath << endl;
-		cout << "fileName:" << fileName << endl;
+		//cout << "filePath:" << filePath << endl;
+		//cout << "fileName:" << fileName << endl;
 		VideoUtil::readVideo(fileName, filePath, period, vImg);
 		//去掉路径中末尾的斜杠\
 		if (filePath[strlen(filePath) - 1] == '\\')
@@ -250,9 +256,9 @@ void videoProceed(vector<string> vecVideoAbsolutePath) {
 		//先从ScanDirectory表中根据filePath找到ID,sqlite3数据库中存储的字符串格式是utf-8
 		string sqlQueryDirectory = string("select * from ScanDirectory where Path = ")
 			+ "\'" + gbk_to_utf8(filePath) + "\'";
-		cout << "sqlQueryDirectory: " << sqlQueryDirectory << endl;
+		//cout << "sqlQueryDirectory: " << sqlQueryDirectory << endl;
 		pdb->m_SDtable.query(resultsDirectory, sqlQueryDirectory); 
-		cout << "resultsDirectory.size(): " << resultsDirectory.size() << endl;
+		//cout << "resultsDirectory.size(): " << resultsDirectory.size() << endl;
 		assert(resultsDirectory.size() == 1);
 		oneRowDirectory = resultsDirectory.at(0);
 		//ScanDirectory表的第一列是ID
@@ -260,9 +266,9 @@ void videoProceed(vector<string> vecVideoAbsolutePath) {
 		//根据ScanDirectoryID和fileName从ScanFile表中找到对应的记录的ID
 		string sqlQueryFile = string("select * from ScanFile where ScanDirectoryID = ")
 			+ ScanDirectoryID + " and FileName = " + "\'" + gbk_to_utf8(fileName) + "\'";
-		cout << "sqlQueryFile: " << sqlQueryFile << endl;
+		//cout << "sqlQueryFile: " << sqlQueryFile << endl;
 		pdb->m_SFtable.query(resultsFile, sqlQueryFile);
-		cout << "resultsFile.size(): " << resultsFile.size() << endl;
+		//cout << "resultsFile.size(): " << resultsFile.size() << endl;
 		assert(resultsFile.size() == 1);
 		oneRowFile = resultsFile.at(0);
 		string id = oneRowFile.at(0);
@@ -270,7 +276,7 @@ void videoProceed(vector<string> vecVideoAbsolutePath) {
 		//将处理的视频结果写入sqlite数据库
 		FrameDiffDetect *pFd = new FrameDiffDetect();
 		bool bResult = pFd->FrameDetectResult(vImg);
-		cout << "pFd->FrameDetectResult(vImg):" << bResult << endl;
+		//cout << "pFd->FrameDetectResult(vImg):" << bResult << endl;
 		pdb->m_SFtable.update_bDeleteMark(atoi(id.c_str()), bResult);
 		//释放vector的内存空间，防止内存泄漏
 		resultsDirectory.clear();
@@ -346,7 +352,7 @@ void test_videoProceed()
 }
 
 void homeCameraExtractionMainLoop() {
-	//InitVideoFileDatabase();
+	InitVideoFileDatabase();
 	
 	std::thread producer(ProducerTask_ReadVideoFromDB); // 创建生产者线程.
 	std::thread consumer(ConsumerTask_SubmitVideoFile2ThreadPool); // 创建消费之线程.

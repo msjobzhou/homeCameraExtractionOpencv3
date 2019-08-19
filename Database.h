@@ -23,14 +23,16 @@ public:
 		Database* m_pParentDB;
 		void insert(int id, string path);
 		void update(int id, string path);
+		void update_bHandledMark(int id, bool bHandledMark);
 		void query(vector<vector<string> > &results);
-		
+		void query(vector<vector<string> > &results, string sqlQuery);
 	} m_IDtable;
 
 	class ScanDirectory {
 	public:
 		Database* m_pParentDB;
 		void insert(int id, int InitialDirectoryID, string path);
+		void update_bHandledMark(int id, bool bHandledMark);
 		void query(vector<vector<string> > &results);
 		void query(vector<vector<string> > &results, string sqlQuery);
 	} m_SDtable;
