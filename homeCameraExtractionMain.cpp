@@ -118,7 +118,7 @@ void InitVideoFileDatabase() {
 
 		vector<string>::iterator iterFile = gVecFile.begin();
 		while (iterFile != gVecFile.end()) {
-			cout << *iterFile << endl;
+			//cout << *iterFile << endl;
 			//插入数据库
 			pdb->m_SFtable.insert(NULL, atoi(id.c_str()), gbk_to_utf8(*iterFile));
 			iterFile++;
@@ -141,11 +141,21 @@ void InitVideoFileDatabase() {
 SingleConsumerSingleProducer<vector<string>> gConsumerProducer_videoReadSubmit2ThreadPool;
 atomic<int> gItemNumProduced = 0;
 int gItemNumConsumed = 0;
-
+int gVideoNumToHandled = 0;
+atomic<int> gVideoNumAlreadyHandled = 0;
 
 void ProducerTask_ReadVideoFromDB() // 生产者任务
 {
 	Database *pdb = new Database(g_pDbName);
+	//得出要处理的视频总数
+	string sqlQueryTotalNum = string("select count(*) from ScanFile where DeleteMark is null;");
+	vector<vector<string> > resultsTotalNum;
+	vector<string> oneRow;
+	pdb->m_SFtable.query(resultsTotalNum, sqlQueryTotalNum);
+	oneRow = resultsTotalNum.at(0);
+	string strTotalNum = oneRow.at(0);
+	gVideoNumToHandled = atoi(strTotalNum.c_str());
+	cout <<"需要处理的视频总数：" << gVideoNumToHandled << endl;
 	//从sqlite中一次读10个未处理的文件，具体的读取方法是初次读取时利用SQL语句找到未处理文件ID最小的那个
 	//然后从这个ID开始读取时刻10个处理的文件，并将这次读取中最大的ID的后一个作为下次读取10个文件的起始ID，
 	//并以此类推循环读下去
@@ -278,6 +288,7 @@ void videoProceed(vector<string> vecVideoAbsolutePath) {
 		bool bResult = pFd->FrameDetectResult(vImg);
 		//cout << "pFd->FrameDetectResult(vImg):" << bResult << endl;
 		pdb->m_SFtable.update_bDeleteMark(atoi(id.c_str()), bResult);
+		gVideoNumAlreadyHandled++;
 		//释放vector的内存空间，防止内存泄漏
 		resultsDirectory.clear();
 		vector<vector<string>>(resultsDirectory).swap(resultsDirectory);
@@ -351,12 +362,21 @@ void test_videoProceed()
 	videoProceed(vecVideoAbsolutePath);
 }
 
+void printVideoProceedProgress() {
+	cout << "TotalVideoNumToHandled: " << gVideoNumToHandled << " VideoNumAlreadyHandled: " \
+		<< gVideoNumAlreadyHandled << endl;
+}
+
 void homeCameraExtractionMainLoop() {
 	InitVideoFileDatabase();
-	
+	Timer t;
+	//每60s打印一次进展
+	t.StartTimer(60000, std::bind(printVideoProceedProgress));
 	std::thread producer(ProducerTask_ReadVideoFromDB); // 创建生产者线程.
 	std::thread consumer(ConsumerTask_SubmitVideoFile2ThreadPool); // 创建消费之线程.
 	producer.join();
 	consumer.join();
-	
+	std::cout << "try to expire timer!" << std::endl;
+	t.Expire();
+
 } 
