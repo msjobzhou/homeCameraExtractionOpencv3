@@ -26,6 +26,7 @@
 #include<functional>
 
 #include <assert.h>
+#include <signal.h>
 
 
 using namespace std;
@@ -52,11 +53,11 @@ void InitVideoFileDatabase() {
 	cout << "sqlite3_config_result :" << rc << endl;
 	//char *pDbName = "C:\\Users\\chao\\gitRepo\\learnPython\\testdb_cpp.db";
 	Database *pdb = new Database(g_pDbName);
-	char *path1 = "E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\08";
-	char *path2 = "E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\09";
+	char *path1 = "E:\\周晓董视频备份已处理文件";
+	//char *path2 = "E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\09";
 	// 插入操作第一个参数ID是个自增字段
 	pdb->m_IDtable.insert(NULL, gbk_to_utf8(path1));
-	pdb->m_IDtable.insert(NULL, gbk_to_utf8(path2));
+	//pdb->m_IDtable.insert(NULL, gbk_to_utf8(path2));
 
 	vector<vector<string> > results;
 	vector<string> oneRow;
@@ -363,11 +364,21 @@ void test_videoProceed()
 }
 
 void printVideoProceedProgress() {
-	cout << "TotalVideoNumToHandled: " << gVideoNumToHandled << " VideoNumAlreadyHandled: " \
+	cout << "待处理视频总数: " << gVideoNumToHandled << " 已处理个数: " \
 		<< gVideoNumAlreadyHandled << endl;
 }
 
+//捕获信号 CTRL+C
+void sighandler(int signum)
+{
+	g_bOver = true;
+	cout << "用户中断程序g_bOver is set to true" << endl;
+}
+
 void homeCameraExtractionMainLoop() {
+	//注册中断处理函数
+	signal(SIGINT, sighandler);
+
 	InitVideoFileDatabase();
 	Timer t;
 	//每60s打印一次进展
