@@ -100,8 +100,14 @@ void testCreateFileCapture(){
 	//VideoCapture vc2("E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\08\\12.mp4");
 	//VideoCapture vc3("E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\08\\13.mp4");
 	//VideoCapture vc4("E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\08\\14.mp4");
-
-	readVideoEveryXFramesInNthPart("E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\08\\42.mp4", 1, 1, 100);
+	//E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\08\\42.mp4
+	//对于下面这个文件readVideoSeekPos的整个视频解码时间竟然要28s，而readVideoEveryFrame只有4s，具体原因还不清楚
+	//E:\\周晓董视频备份已处理文件\\客厅电视柜上\\2017-07-20\\08\\35.mp4
+	//D:\\test\\01.mp4
+	char *path = "D:\\test\\01.mp4";
+	//readVideoEveryXFramesInNthPart(path, 1, 1, 50);
+	//readVideoEveryFrame(path, 50);
+	readVideoSeekPos(path, 50);
 	//vector<Mat> vImg;
 	//VideoUtil::readVideo("42.mp4", "E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\08", 100, vImg);
 }
@@ -114,6 +120,7 @@ void readVideoEveryXFramesInNthPart(const char* fileFullPath, int NSegments, int
 
 	CvCapture *capture = cvCreateFileCapture(fileFullPath);
 	int numFrames = (int)cvGetCaptureProperty(capture, CV_CAP_PROP_FRAME_COUNT);
+	cout << "帧总数：" << numFrames << endl;
 	//视频文件打开为空，直接返回-1
 	if (capture == NULL)
 	{
@@ -242,14 +249,14 @@ int readVideoSeekPos(const char* filePath, int period) {
 	int nPos = period;
 	while (nPos <= numFrames && capture.grab())
 	{
-		//double t = (double)getTickCount();
+		double t = (double)getTickCount();
 		capture.set(CV_CAP_PROP_POS_FRAMES, nPos);
-		//cout << "capture.set(CV_CAP_PROP_POS_FRAMES)耗时:" << ((double)getTickCount() - t) / getTickFrequency() << endl;
+		cout << "capture.set(CV_CAP_PROP_POS_FRAMES)耗时:" << ((double)getTickCount() - t) / getTickFrequency() << endl;
 
 
-		//t = (double)getTickCount();
+		t = (double)getTickCount();
 		bool bRes = capture.retrieve(frame);
-		//cout << "capture.retrieve(frame)耗时:" << ((double)getTickCount() - t) / getTickFrequency() << endl;
+		cout << "capture.retrieve(frame)耗时:" << ((double)getTickCount() - t) / getTickFrequency() << endl;
 		//实际我的程序运行的过程中总是获取到空的帧，这里加个保护
 		if (!bRes)
 			break;

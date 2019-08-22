@@ -336,10 +336,11 @@ void ConsumerTask_SubmitVideoFile2ThreadPool() // 消费者任务
 
 			gItemNumConsumed++;
 			//提交thread_pool
+			//std::cout << "queueSize:" << tpVideoProcess.workQueueSize() << "tp.submit ...\n";
 			tpVideoProcess.submit(std::bind(videoProceed, vecConsumedItem));
 		}
 		//休眠2秒，等待thread_pool处理视频
-		std::this_thread::sleep_for(std::chrono::seconds(2));
+		std::this_thread::sleep_for(std::chrono::seconds(15));
 	}
 
 	//消费者线程每隔5s定时判断threadPool线程池的任务队列是否为空，

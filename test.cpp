@@ -351,7 +351,7 @@ void ConsumerTask() // 消费者任务
 {
 	static int cnt = 0;
 	while (1) {
-		std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::this_thread::sleep_for(std::chrono::seconds(5));
 		int item = ss.ConsumeItem(); // 消费一个产品.
 		std::cout << "Consume the " << item << "^th item" << std::endl;
 		if (++cnt == kItemsToProduce) break; // 如果产品消费个数为 kItemsToProduce, 则退出.

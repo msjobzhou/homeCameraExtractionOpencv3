@@ -13,6 +13,8 @@ class VideoUtil {
 public :
 	static int readVideoSaveImg(const char* fileName, const char* filePath, const char* saveImgPath, int period, vector<string> &vImgPath);
 
+	static int readVideoSeekPos(const char* fileName, const char* filePath, int period, vector<Mat> &vImg);
+
 	static int readVideo(const char* fileName, const char* filePath, int period, vector<Mat> &vImg);
 };
 

@@ -104,7 +104,7 @@ filePath 需要读取视频文件路径，程序假设路径不是以"\"结尾，函数代码中会在文件名前
 period 帧间隔，每隔多少帧取其中一张截图
 vImg 把从视频中读取的图像全部拷贝一份保存在vector里，方便后续程序处理
 */
-int VideoUtil::readVideo(const char* fileName, const char* filePath, int period, vector<Mat> &vImg) {
+int VideoUtil::readVideoSeekPos(const char* fileName, const char* filePath, int period, vector<Mat> &vImg) {
 	//入参检查
 	if ((NULL == fileName) || (NULL == filePath))
 		return -1;
@@ -139,6 +139,49 @@ int VideoUtil::readVideo(const char* fileName, const char* filePath, int period,
 		cvtColor(frame, dstGray, CV_BGR2GRAY);
 		vImg.push_back(dstGray);
 		nPos += period;
+	}
+
+	capture.release();
+	return numFrames;
+}
+
+int VideoUtil::readVideo(const char* fileName, const char* filePath, int period, vector<Mat> &vImg) {
+	//入参检查
+	if ((NULL == fileName) || (NULL == filePath))
+		return -1;
+
+	string fileFullPath = "";
+	if (filePath[strlen(filePath) - 1] != '\\')
+		fileFullPath = fileFullPath + filePath + "\\" + fileName;
+	else
+		fileFullPath = fileFullPath + filePath + fileName;
+	VideoCapture capture;
+	capture.open(fileFullPath.c_str()); //打开视频文件
+	//获取视频文件总共有多少帧
+	int numFrames = (int)capture.get(CV_CAP_PROP_FRAME_COUNT);
+	//视频文件打开为空，直接返回-1
+	if (!capture.isOpened())
+	{
+		return  -1;
+	}
+	//printf("totalFrameNum:%d",numFrames);
+	Mat frame;
+	//string strSaveImgPath = "";
+	int nPos = period;
+	while (nPos <= numFrames && capture.grab())
+	{
+		//函数cvRetrieveFrame返回由函数cvGrabFrame 抓取的图像的指针。返回的图像不可以被用户释放或者修改。
+		bool bRes = capture.retrieve(frame);
+		//实际我的程序运行的过程中总是获取到空的帧，这里加个保护
+		if (!bRes)
+			break;
+		nPos++;
+		if (nPos%period == 0) {
+			//每隔period帧获取一个帧
+			Mat dstGray;
+			cvtColor(frame, dstGray, CV_BGR2GRAY);
+			vImg.push_back(dstGray);
+		}
 	}
 
 	capture.release();

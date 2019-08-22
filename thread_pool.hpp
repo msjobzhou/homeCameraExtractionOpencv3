@@ -67,7 +67,7 @@ public:
 		std::lock_guard<std::mutex> lk(mut);
 		return data_queue.empty();
 	}
-	bool size() {
+	int size() {
 		std::lock_guard<std::mutex> lk(mut);
 		return data_queue.size();
 	}

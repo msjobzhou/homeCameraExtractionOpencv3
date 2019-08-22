@@ -1,6 +1,7 @@
 #include "Database.h"
 #include <iostream>
 #include <stdlib.h>
+#include<thread>
 
 Database::Database(const char* filename)
 {
@@ -408,9 +409,18 @@ void Database::ScanFile::update_bDeleteMark(int id, bool bDeleteMark) {
 	sqlite3_bind_int(pStatement, idx, id);
 	idx = sqlite3_bind_parameter_index(pStatement, "@_DeleteMark");
 	sqlite3_bind_int(pStatement, idx, bDeleteMark);
-
-	sqlite3_step(pStatement);
-
+	int nRetryTime = 3;
+	int nTmp = 1;
+	//多线程访问，遇到数据库忙的情形，每隔100ms尝试3次
+	while (nTmp <= nRetryTime) {
+		if (SQLITE_BUSY == sqlite3_step(pStatement)) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			nTmp++;
+		}
+		else {
+			break;
+		}
+	}
 	sqlite3_finalize(pStatement);
 
 	string error = sqlite3_errmsg(m_pParentDB->m_pdb);
@@ -430,8 +440,18 @@ void Database::ScanFile::update_bDeleteAlready(int id, bool bDeleteAlready) {
 	sqlite3_bind_int(pStatement, idx, id);
 	idx = sqlite3_bind_parameter_index(pStatement, "@_bDeleteAlready");
 	sqlite3_bind_int(pStatement, idx, bDeleteAlready);
-
-	sqlite3_step(pStatement);
+	int nRetryTime = 3;
+	int nTmp = 1;
+	//多线程访问，遇到数据库忙的情形，每隔100ms尝试3次
+	while (nTmp <= nRetryTime) {
+		if (SQLITE_BUSY == sqlite3_step(pStatement)) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			nTmp++;
+		}
+		else {
+			break;
+		}
+	}
 
 	sqlite3_finalize(pStatement);
 

@@ -61,6 +61,7 @@ public:
 
 		data = (m_ItemRepository.item_buffer)[m_ItemRepository.read_position]; // 读取某一产品
 		(m_ItemRepository.read_position)++; // 读取位置后移
+		//std::cout << "one item consumed...\n";
 
 		if (m_ItemRepository.read_position >= kItemRepositorySize) // 读取位置若移到最后，则重新置位.
 			m_ItemRepository.read_position = 0;
