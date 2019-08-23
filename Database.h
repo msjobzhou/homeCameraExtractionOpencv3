@@ -13,7 +13,7 @@ private:
 	bool openDB(const char* filename);
 	void createTable(char* sqlStr);
 	void closeDB();
-
+	static int sqlite3_step_retry(sqlite3_stmt *pStatement, string funcName);
 public:
 	Database(const char* filename);
 	~Database();
@@ -23,6 +23,7 @@ public:
 		Database* m_pParentDB;
 		void insert(int id, string path);
 		void update(int id, string path);
+
 		void update_bHandledMark(int id, bool bHandledMark);
 		void query(vector<vector<string> > &results);
 		void query(vector<vector<string> > &results, string sqlQuery);

@@ -51,6 +51,8 @@ int main()
 	
 	//cout << calculateRunTime(testReadVideoEveryFrame) << endl;
 
+	//cout << __FUNCTION__ << endl;
+
 	return 0;
 }
 

@@ -57,7 +57,30 @@ void Database::createTable(char* sqlStr)
 	if (error != "not an error") cout << sqlStr << " " << error << endl;
 }
 
+int Database::sqlite3_step_retry(sqlite3_stmt *pStatement, string funcName)
+{
+	int nRetryTime = 3;
+	int nTmp = 1;
+	int nRet;
+	//多线程访问，遇到数据库忙的情形，每隔100ms尝试3次->修改成一直尝试下去
+	//while (nTmp <= nRetryTime) {
+	while (true) {
+		nRet = sqlite3_step(pStatement);
+		if (SQLITE_BUSY == nRet) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			nTmp++;
+		}
+		else {
+			if (nTmp > nRetryTime) {
+				//成功访问数据库的重试次数超过阈值，打印提示一下
+				cout << funcName << "重试访问数据库 " << nTmp << " 次成功" << endl;
+			}
+			break;
+		}
+	}
 
+	return nRet;
+}
 
 void Database::InitialDirectory::insert(int id, string path)
 {
@@ -85,7 +108,7 @@ void Database::InitialDirectory::insert(int id, string path)
 	idx = sqlite3_bind_parameter_index(pStatement, "@_path");
 	sqlite3_bind_text(pStatement, idx, path.c_str(), -1, SQLITE_STATIC);
 
-	sqlite3_step(pStatement);
+	sqlite3_step_retry(pStatement, __FUNCTION__);
 
 	sqlite3_finalize(pStatement);
 
@@ -107,7 +130,7 @@ void Database::InitialDirectory::update(int id, string path)
 	idx = sqlite3_bind_parameter_index(pStatement, "@_path");
 	sqlite3_bind_text(pStatement, idx, path.c_str(), -1, SQLITE_STATIC);
 
-	sqlite3_step(pStatement);
+	sqlite3_step_retry(pStatement,__FUNCTION__);
 
 	sqlite3_finalize(pStatement);
 
@@ -129,7 +152,7 @@ void Database::InitialDirectory::update_bHandledMark(int id, bool bHandledMark)
 	idx = sqlite3_bind_parameter_index(pStatement, "@_HandledMark");
 	sqlite3_bind_int(pStatement, idx, bHandledMark);
 
-	sqlite3_step(pStatement);
+	sqlite3_step_retry(pStatement, __FUNCTION__);
 
 	sqlite3_finalize(pStatement);
 
@@ -147,7 +170,7 @@ void Database::InitialDirectory::query(vector<vector<string> > &results)
 		int result = 0;
 		while (true)
 		{
-			result = sqlite3_step(pStatement);
+			result = sqlite3_step_retry(pStatement, __FUNCTION__);
 
 			if (result == SQLITE_ROW)
 			{
@@ -188,7 +211,7 @@ void Database::InitialDirectory::query(vector<vector<string> > &results, string 
 		int result = 0;
 		while (true)
 		{
-			result = sqlite3_step(pStatement);
+			result = sqlite3_step_retry(pStatement, __FUNCTION__);
 
 			if (result == SQLITE_ROW)
 			{
@@ -247,7 +270,7 @@ void Database::ScanDirectory::insert(int id, int InitialDirectoryID, string path
 	idx = sqlite3_bind_parameter_index(pStatement, "@_path");
 	sqlite3_bind_text(pStatement, idx, path.c_str(), -1, SQLITE_STATIC);
 
-	sqlite3_step(pStatement);
+	sqlite3_step_retry(pStatement, __FUNCTION__);
 
 	sqlite3_finalize(pStatement);
 
@@ -269,7 +292,7 @@ void Database::ScanDirectory::update_bHandledMark(int id, bool bHandledMark)
 	idx = sqlite3_bind_parameter_index(pStatement, "@_HandledMark");
 	sqlite3_bind_int(pStatement, idx, bHandledMark);
 
-	sqlite3_step(pStatement);
+	sqlite3_step_retry(pStatement, __FUNCTION__);
 
 	sqlite3_finalize(pStatement);
 
@@ -288,7 +311,7 @@ void Database::ScanDirectory::query(vector<vector<string> > &results)
 		int result = 0;
 		while (true)
 		{
-			result = sqlite3_step(pStatement);
+			result = sqlite3_step_retry(pStatement, __FUNCTION__);
 
 			if (result == SQLITE_ROW)
 			{
@@ -329,7 +352,7 @@ void Database::ScanDirectory::query(vector<vector<string> > &results, string sql
 		int result = 0;
 		while (true)
 		{
-			result = sqlite3_step(pStatement);
+			result = sqlite3_step_retry(pStatement, __FUNCTION__);
 
 			if (result == SQLITE_ROW)
 			{
@@ -389,7 +412,7 @@ void Database::ScanFile::insert(int id, int ScanDirectoryID, string fileName)
 	idx = sqlite3_bind_parameter_index(pStatement, "@_fileName");
 	sqlite3_bind_text(pStatement, idx, fileName.c_str(), -1, SQLITE_STATIC);
 
-	sqlite3_step(pStatement);
+	sqlite3_step_retry(pStatement, __FUNCTION__);
 
 	sqlite3_finalize(pStatement);
 
@@ -411,16 +434,7 @@ void Database::ScanFile::update_bDeleteMark(int id, bool bDeleteMark) {
 	sqlite3_bind_int(pStatement, idx, bDeleteMark);
 	int nRetryTime = 3;
 	int nTmp = 1;
-	//多线程访问，遇到数据库忙的情形，每隔100ms尝试3次
-	while (nTmp <= nRetryTime) {
-		if (SQLITE_BUSY == sqlite3_step(pStatement)) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-			nTmp++;
-		}
-		else {
-			break;
-		}
-	}
+	sqlite3_step_retry(pStatement, __FUNCTION__);
 	sqlite3_finalize(pStatement);
 
 	string error = sqlite3_errmsg(m_pParentDB->m_pdb);
@@ -442,16 +456,7 @@ void Database::ScanFile::update_bDeleteAlready(int id, bool bDeleteAlready) {
 	sqlite3_bind_int(pStatement, idx, bDeleteAlready);
 	int nRetryTime = 3;
 	int nTmp = 1;
-	//多线程访问，遇到数据库忙的情形，每隔100ms尝试3次
-	while (nTmp <= nRetryTime) {
-		if (SQLITE_BUSY == sqlite3_step(pStatement)) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-			nTmp++;
-		}
-		else {
-			break;
-		}
-	}
+	sqlite3_step_retry(pStatement, __FUNCTION__);
 
 	sqlite3_finalize(pStatement);
 
@@ -469,7 +474,7 @@ void Database::ScanFile::query(vector<vector<string> > &results, string sqlQuery
 		int result = 0;
 		while (true)
 		{
-			result = sqlite3_step(pStatement);
+			result = sqlite3_step_retry(pStatement, __FUNCTION__);
 
 			if (result == SQLITE_ROW)
 			{
