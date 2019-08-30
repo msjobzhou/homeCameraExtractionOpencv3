@@ -35,7 +35,7 @@ public:
 		std::unique_lock<std::mutex> lock(m_ItemRepository.mtx);
 		while (((m_ItemRepository.write_position + 1) % kItemRepositorySize)
 			== m_ItemRepository.read_position) { // item buffer is full, just wait here.
-			std::cout << "Producer is waiting for an empty slot...\n";
+			//std::cout << "Producer is waiting for an empty slot...\n";
 			(m_ItemRepository.repo_not_full).wait(lock); // 生产者等待"产品库缓冲区不为满"这一条件发生.
 		}
 

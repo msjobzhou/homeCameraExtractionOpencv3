@@ -247,15 +247,22 @@ int readVideoSeekPos(const char* filePath, int period) {
 	}
 	Mat frame;
 	int nPos = period;
-	while (nPos <= numFrames && capture.grab())
+	while (nPos <= numFrames)
 	{
 		double t = (double)getTickCount();
+		if (!capture.grab())
+			break;
+		cout << "capture.grab()耗时:" << ((double)getTickCount() - t) / getTickFrequency() << endl;
+
+		t = (double)getTickCount();
 		capture.set(CV_CAP_PROP_POS_FRAMES, nPos);
 		cout << "capture.set(CV_CAP_PROP_POS_FRAMES)耗时:" << ((double)getTickCount() - t) / getTickFrequency() << endl;
 
 
 		t = (double)getTickCount();
 		bool bRes = capture.retrieve(frame);
+		/*这里同时测试了使用grad/retrieve和read相比速率差异，结果显示两者速率相差无几*/
+		//bool bRes = capture.read(frame);
 		cout << "capture.retrieve(frame)耗时:" << ((double)getTickCount() - t) / getTickFrequency() << endl;
 		//实际我的程序运行的过程中总是获取到空的帧，这里加个保护
 		if (!bRes)

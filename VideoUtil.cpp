@@ -168,10 +168,14 @@ int VideoUtil::readVideo(const char* fileName, const char* filePath, int period,
 	Mat frame;
 	//string strSaveImgPath = "";
 	int nPos = period;
-	while (nPos <= numFrames && capture.grab())
+	while (nPos <= numFrames)
 	{
+		//if (!capture.grab()) {
+		//	break;
+		//}
 		//函数cvRetrieveFrame返回由函数cvGrabFrame 抓取的图像的指针。返回的图像不可以被用户释放或者修改。
-		bool bRes = capture.retrieve(frame);
+		//bool bRes = capture.retrieve(frame);
+		bool bRes = capture.read(frame);
 		//实际我的程序运行的过程中总是获取到空的帧，这里加个保护
 		if (!bRes)
 			break;
