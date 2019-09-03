@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include<thread>
 
+bool Database::bTableCreated = false;
+
 Database::Database(const char* filename)
 {
 	m_pdb = NULL;
@@ -11,6 +13,11 @@ Database::Database(const char* filename)
 	m_IDtable.m_pParentDB = this;
 	m_SDtable.m_pParentDB = this;
 	m_SFtable.m_pParentDB = this;
+
+	if (bTableCreated) {
+		return;
+	}
+
 	char* sqlStrCreateTableInitialDirectory = "CREATE TABLE IF NOT EXISTS \
 		InitialDirectory (ID INTEGER PRIMARY KEY AUTOINCREMENT, Path varchar(255) NOT NULL UNIQUE, \
 		HandledMark BOOLEAN DEFAULT NULL)";
@@ -23,6 +30,8 @@ Database::Database(const char* filename)
 		ScanFile (ID INTEGER PRIMARY KEY AUTOINCREMENT, ScanDirectoryID INTEGER, \
 		FileName varchar(255) NOT NULL, DeleteMark BOOLEAN DEFAULT NULL, DeleteAlready BOOLEAN DEFAULT NULL)";
 	createTable(sqlStrCreateTableScanFile);
+
+	bTableCreated = true;
 }
 
 Database::~Database()
@@ -46,6 +55,8 @@ void Database::createTable(char* sqlStr)
 	if (rc != SQLITE_OK)
 	{
 		cerr << "sqlite3_prepare_v2 error:" << sqlStr << endl;
+		string error1 = sqlite3_errmsg(m_pdb);
+		if (error1 != "not an error") cout << sqlStr << " " << error1 << endl;
 		exit(-1);
 	}
 
@@ -95,6 +106,8 @@ void Database::InitialDirectory::insert(int id, string path)
 	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
 	if (rc != SQLITE_OK){
 		cerr << "sqlite3_prepare_v2 error:" << query << endl;
+		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
+		if (error1 != "not an error") cout << query << " " << error1 << endl;
 		exit(-1);
 	}
 
@@ -122,7 +135,11 @@ void Database::InitialDirectory::update(int id, string path)
 	char* query = "UPDATE InitialDirectory SET Path=@_path WHERE ID=@_id;";
 
 	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
-	if (rc != SQLITE_OK) exit(-1);
+	if (rc != SQLITE_OK) {
+		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
+		if (error1 != "not an error") cout << query << " " << error1 << endl;
+		exit(-1);
+	}
 
 	int idx = -1;
 	idx = sqlite3_bind_parameter_index(pStatement, "@_id");
@@ -144,7 +161,11 @@ void Database::InitialDirectory::update_bHandledMark(int id, bool bHandledMark)
 	char* query = "UPDATE InitialDirectory SET HandledMark=@_HandledMark WHERE ID=@_id;";
 
 	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
-	if (rc != SQLITE_OK) exit(-1);
+	if (rc != SQLITE_OK) {
+		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
+		if (error1 != "not an error") cout << query << " " << error1 << endl;
+		exit(-1);
+	}
 
 	int idx = -1;
 	idx = sqlite3_bind_parameter_index(pStatement, "@_id");
@@ -254,6 +275,8 @@ void Database::ScanDirectory::insert(int id, int InitialDirectoryID, string path
 	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
 	if (rc != SQLITE_OK){
 		cerr << "sqlite3_prepare_v2 error:" << query << endl;
+		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
+		if (error1 != "not an error") cout << query << " " << error1 << endl;
 		exit(-1);
 	}
 
@@ -284,8 +307,11 @@ void Database::ScanDirectory::update_bHandledMark(int id, bool bHandledMark)
 	char* query = "UPDATE ScanDirectory SET HandledMark=@_HandledMark WHERE ID=@_id;";
 
 	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
-	if (rc != SQLITE_OK) exit(-1);
-
+	if (rc != SQLITE_OK) {
+		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
+		if (error1 != "not an error") cout << query << " " << error1 << endl;
+		exit(-1);
+	}
 	int idx = -1;
 	idx = sqlite3_bind_parameter_index(pStatement, "@_id");
 	sqlite3_bind_int(pStatement, idx, id);
@@ -396,6 +422,8 @@ void Database::ScanFile::insert(int id, int ScanDirectoryID, string fileName)
 	if (rc != SQLITE_OK){
 		string errmsg = sqlite3_errmsg(m_pParentDB->m_pdb);
 		cerr << "sqlite3_prepare_v2 error:" << query << " " << errmsg << endl;
+		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
+		if (error1 != "not an error") cout << query << " " << error1 << endl;
 		exit(-1);
 	}
 
@@ -425,8 +453,11 @@ void Database::ScanFile::update_bDeleteMark(int id, bool bDeleteMark) {
 	char* query = "UPDATE ScanFile SET DeleteMark=@_DeleteMark WHERE ID=@_id;";
 
 	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
-	if (rc != SQLITE_OK) exit(-1);
-
+	if (rc != SQLITE_OK) {
+		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
+		if (error1 != "not an error") cout << query << " " << error1 << endl;
+		exit(-1);
+	}
 	int idx = -1;
 	idx = sqlite3_bind_parameter_index(pStatement, "@_id");
 	sqlite3_bind_int(pStatement, idx, id);
@@ -447,7 +478,11 @@ void Database::ScanFile::update_bDeleteAlready(int id, bool bDeleteAlready) {
 	char* query = "UPDATE ScanFile SET DeleteMark=@_bDeleteAlready WHERE ID=@_id;";
 
 	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
-	if (rc != SQLITE_OK) exit(-1);
+	if (rc != SQLITE_OK) {
+		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
+		if (error1 != "not an error") cout << query << " " << error1 << endl;
+		exit(-1);
+	}
 
 	int idx = -1;
 	idx = sqlite3_bind_parameter_index(pStatement, "@_id");

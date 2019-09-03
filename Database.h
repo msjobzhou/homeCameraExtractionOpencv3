@@ -15,6 +15,7 @@ private:
 	void closeDB();
 	static int sqlite3_step_retry(sqlite3_stmt *pStatement, string funcName);
 public:
+	static bool bTableCreated;
 	Database(const char* filename);
 	~Database();
 
