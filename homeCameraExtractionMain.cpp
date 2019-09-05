@@ -153,6 +153,10 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 	vector<vector<string> > resultsTotalNum;
 	vector<string> oneRow;
 	pdb->m_SFtable.query(resultsTotalNum, sqlQueryTotalNum);
+	if (resultsTotalNum.empty()) {
+		cout <<"要处理的视频总数为0" << endl;
+		return;
+	}
 	oneRow = resultsTotalNum.at(0);
 	string strTotalNum = oneRow.at(0);
 	gVideoNumToHandled = atoi(strTotalNum.c_str());
@@ -199,6 +203,10 @@ void ProducerTask_ReadVideoFromDB() // 生产者任务
 					+ oneRow.at(1);
 				//cout << "sqlQueryDirectory: " << sqlQueryDirectory << endl;
 				pdb->m_SDtable.query(resultsDirectory, sqlQueryDirectory);
+				if (resultsDirectory.empty()) {
+					cout << sqlQueryDirectory << "result is empty" << endl;
+					break;
+				}
 				//断言这个查询记录只有1条
 				assert(resultsDirectory.size() == 1);
 				oneRowDirectory = resultsDirectory.at(0);
@@ -261,7 +269,7 @@ void videoProceed(vector<string> vecVideoAbsolutePath) {
 		//cout << "filePath:" << filePath << endl;
 		//cout << "fileName:" << fileName << endl;
 		VideoUtil::readVideo(fileName, filePath, period, vImg);
-		//去掉路径中末尾的斜杠\
+		//去掉路径中末尾的斜杠
 		if (filePath[strlen(filePath) - 1] == '\\')
 			filePath[strlen(filePath) - 1] = '\0';
 		//先从ScanDirectory表中根据filePath找到ID,sqlite3数据库中存储的字符串格式是utf-8
@@ -270,6 +278,10 @@ void videoProceed(vector<string> vecVideoAbsolutePath) {
 		//cout << "sqlQueryDirectory: " << sqlQueryDirectory << endl;
 		pdb->m_SDtable.query(resultsDirectory, sqlQueryDirectory); 
 		//cout << "resultsDirectory.size(): " << resultsDirectory.size() << endl;
+		if (resultsDirectory.empty()) {
+			cout << sqlQueryDirectory << "result is empty" << endl;
+			break;
+		}
 		assert(resultsDirectory.size() == 1);
 		oneRowDirectory = resultsDirectory.at(0);
 		//ScanDirectory表的第一列是ID
@@ -280,6 +292,10 @@ void videoProceed(vector<string> vecVideoAbsolutePath) {
 		//cout << "sqlQueryFile: " << sqlQueryFile << endl;
 		pdb->m_SFtable.query(resultsFile, sqlQueryFile);
 		//cout << "resultsFile.size(): " << resultsFile.size() << endl;
+		if (resultsFile.empty()) {
+			cout << sqlQueryFile << "result is empty" << endl;
+			break;
+		}
 		assert(resultsFile.size() == 1);
 		oneRowFile = resultsFile.at(0);
 		string id = oneRowFile.at(0);

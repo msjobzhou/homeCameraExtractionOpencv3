@@ -51,10 +51,10 @@ void Database::createTable(char* sqlStr)
 {
 	sqlite3_stmt *pStatement;
 	
-	int rc = sqlite3_prepare_v2(m_pdb, sqlStr, -1, &pStatement, 0);
+	int rc = sqlite3_prepare_v2_retry(m_pdb, sqlStr, -1, &pStatement, 0);
 	if (rc != SQLITE_OK)
 	{
-		cerr << "sqlite3_prepare_v2 error:" << sqlStr << endl;
+		cerr << "sqlite3_prepare_v2_retry error:" << sqlStr << endl;
 		string error1 = sqlite3_errmsg(m_pdb);
 		if (error1 != "not an error") cout << sqlStr << " " << error1 << endl;
 		exit(-1);
@@ -84,7 +84,7 @@ int Database::sqlite3_step_retry(sqlite3_stmt *pStatement, string funcName)
 		else {
 			if (nTmp > nRetryTime) {
 				//成功访问数据库的重试次数超过阈值，打印提示一下
-				cout << funcName << "重试访问数据库 " << nTmp << " 次成功" << endl;
+				cout << funcName << "sqlite3_step重试访问数据库 " << nTmp << " 次成功" << endl;
 			}
 			break;
 		}
@@ -92,6 +92,32 @@ int Database::sqlite3_step_retry(sqlite3_stmt *pStatement, string funcName)
 
 	return nRet;
 }
+
+int Database::sqlite3_prepare_v2_retry(sqlite3 *db, const char *zSql, int nByte, sqlite3_stmt **ppStmt, const char **pzTail)
+{
+	int nRetryTime = 3;
+	int nTmp = 1;
+	int nRet;
+	//多线程访问，遇到数据库忙的情形，每隔100ms尝试3次->修改成一直尝试下去
+	//while (nTmp <= nRetryTime) {
+	while (true) {
+		nRet = sqlite3_prepare_v2(db, zSql, nByte, ppStmt, pzTail);
+		if (SQLITE_BUSY == nRet) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			nTmp++;
+		}
+		else {
+			if (nTmp > nRetryTime) {
+				//成功访问数据库的重试次数超过阈值，打印提示一下
+				cout << "sqlite3_prepare_v2_retry重试访问数据库 " << nTmp << " 次成功" << endl;
+			}
+			break;
+		}
+	}
+
+	return nRet;
+}
+
 
 void Database::InitialDirectory::insert(int id, string path)
 {
@@ -103,9 +129,9 @@ void Database::InitialDirectory::insert(int id, string path)
 		query = "INSERT INTO InitialDirectory VALUES(NULL, @_path, false);";
 	}
 
-	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
+	int rc = sqlite3_prepare_v2_retry(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
 	if (rc != SQLITE_OK){
-		cerr << "sqlite3_prepare_v2 error:" << query << endl;
+		cerr << "sqlite3_prepare_v2_retry error:" << query << endl;
 		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
 		if (error1 != "not an error") cout << query << " " << error1 << endl;
 		exit(-1);
@@ -134,7 +160,7 @@ void Database::InitialDirectory::update(int id, string path)
 	sqlite3_stmt *pStatement;
 	char* query = "UPDATE InitialDirectory SET Path=@_path WHERE ID=@_id;";
 
-	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
+	int rc = sqlite3_prepare_v2_retry(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
 	if (rc != SQLITE_OK) {
 		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
 		if (error1 != "not an error") cout << query << " " << error1 << endl;
@@ -160,7 +186,7 @@ void Database::InitialDirectory::update_bHandledMark(int id, bool bHandledMark)
 	sqlite3_stmt *pStatement;
 	char* query = "UPDATE InitialDirectory SET HandledMark=@_HandledMark WHERE ID=@_id;";
 
-	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
+	int rc = sqlite3_prepare_v2_retry(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
 	if (rc != SQLITE_OK) {
 		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
 		if (error1 != "not an error") cout << query << " " << error1 << endl;
@@ -185,7 +211,7 @@ void Database::InitialDirectory::query(vector<vector<string> > &results)
 {
 	sqlite3_stmt *pStatement;
 	char* query = "SELECT * FROM InitialDirectory;";
-	if (sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0) == SQLITE_OK)
+	if (sqlite3_prepare_v2_retry(m_pParentDB->m_pdb, query, -1, &pStatement, 0) == SQLITE_OK)
 	{
 		int cols = sqlite3_column_count(pStatement);
 		int result = 0;
@@ -226,7 +252,7 @@ void Database::InitialDirectory::query(vector<vector<string> > &results, string 
 	sqlite3_stmt *pStatement;
 	const char* query = sqlQuery.c_str();
 	//cout << "sqlQuery: " << sqlQuery << endl;
-	if (sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0) == SQLITE_OK)
+	if (sqlite3_prepare_v2_retry(m_pParentDB->m_pdb, query, -1, &pStatement, 0) == SQLITE_OK)
 	{
 		int cols = sqlite3_column_count(pStatement);
 		int result = 0;
@@ -272,9 +298,9 @@ void Database::ScanDirectory::insert(int id, int InitialDirectoryID, string path
 		query = "INSERT INTO ScanDirectory VALUES(NULL, @_InitialDirectoryID, @_path, false);";
 	}
 
-	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
+	int rc = sqlite3_prepare_v2_retry(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
 	if (rc != SQLITE_OK){
-		cerr << "sqlite3_prepare_v2 error:" << query << endl;
+		cerr << "sqlite3_prepare_v2_retry error:" << query << endl;
 		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
 		if (error1 != "not an error") cout << query << " " << error1 << endl;
 		exit(-1);
@@ -306,7 +332,7 @@ void Database::ScanDirectory::update_bHandledMark(int id, bool bHandledMark)
 	sqlite3_stmt *pStatement;
 	char* query = "UPDATE ScanDirectory SET HandledMark=@_HandledMark WHERE ID=@_id;";
 
-	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
+	int rc = sqlite3_prepare_v2_retry(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
 	if (rc != SQLITE_OK) {
 		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
 		if (error1 != "not an error") cout << query << " " << error1 << endl;
@@ -331,7 +357,7 @@ void Database::ScanDirectory::query(vector<vector<string> > &results)
 {
 	sqlite3_stmt *pStatement;
 	char* query = "SELECT * FROM ScanDirectory;";
-	if (sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0) == SQLITE_OK)
+	if (sqlite3_prepare_v2_retry(m_pParentDB->m_pdb, query, -1, &pStatement, 0) == SQLITE_OK)
 	{
 		int cols = sqlite3_column_count(pStatement);
 		int result = 0;
@@ -372,7 +398,7 @@ void Database::ScanDirectory::query(vector<vector<string> > &results, string sql
 	sqlite3_stmt *pStatement;
 	const char* query = sqlQuery.c_str();
 	//cout << "sqlQuery: " << sqlQuery << endl;
-	if (sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0) == SQLITE_OK)
+	if (sqlite3_prepare_v2_retry(m_pParentDB->m_pdb, query, -1, &pStatement, 0) == SQLITE_OK)
 	{
 		int cols = sqlite3_column_count(pStatement);
 		int result = 0;
@@ -418,10 +444,10 @@ void Database::ScanFile::insert(int id, int ScanDirectoryID, string fileName)
 		query = "INSERT INTO ScanFile VALUES(NULL, @_ScanDirectoryID, @_fileName, NULL, NULL);";
 	}
 
-	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
+	int rc = sqlite3_prepare_v2_retry(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
 	if (rc != SQLITE_OK){
 		string errmsg = sqlite3_errmsg(m_pParentDB->m_pdb);
-		cerr << "sqlite3_prepare_v2 error:" << query << " " << errmsg << endl;
+		cerr << "sqlite3_prepare_v2_retry error:" << query << " " << errmsg << endl;
 		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
 		if (error1 != "not an error") cout << query << " " << error1 << endl;
 		exit(-1);
@@ -452,7 +478,7 @@ void Database::ScanFile::update_bDeleteMark(int id, bool bDeleteMark) {
 	sqlite3_stmt *pStatement;
 	char* query = "UPDATE ScanFile SET DeleteMark=@_DeleteMark WHERE ID=@_id;";
 
-	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
+	int rc = sqlite3_prepare_v2_retry(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
 	if (rc != SQLITE_OK) {
 		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
 		if (error1 != "not an error") cout << query << " " << error1 << endl;
@@ -477,7 +503,7 @@ void Database::ScanFile::update_bDeleteAlready(int id, bool bDeleteAlready) {
 	sqlite3_stmt *pStatement;
 	char* query = "UPDATE ScanFile SET DeleteMark=@_bDeleteAlready WHERE ID=@_id;";
 
-	int rc = sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
+	int rc = sqlite3_prepare_v2_retry(m_pParentDB->m_pdb, query, -1, &pStatement, 0);
 	if (rc != SQLITE_OK) {
 		string error1 = sqlite3_errmsg(m_pParentDB->m_pdb);
 		if (error1 != "not an error") cout << query << " " << error1 << endl;
@@ -503,7 +529,7 @@ void Database::ScanFile::query(vector<vector<string> > &results, string sqlQuery
 {
 	sqlite3_stmt *pStatement;
 	const char* query = sqlQuery.c_str();
-	if (sqlite3_prepare_v2(m_pParentDB->m_pdb, query, -1, &pStatement, 0) == SQLITE_OK)
+	if (sqlite3_prepare_v2_retry(m_pParentDB->m_pdb, query, -1, &pStatement, 0) == SQLITE_OK)
 	{
 		int cols = sqlite3_column_count(pStatement);
 		int result = 0;

@@ -13,6 +13,7 @@ private:
 	bool openDB(const char* filename);
 	void createTable(char* sqlStr);
 	void closeDB();
+	static int sqlite3_prepare_v2_retry(sqlite3 *db, const char *zSql, int nByte, sqlite3_stmt **ppStmt, const char **pzTail);
 	static int sqlite3_step_retry(sqlite3_stmt *pStatement, string funcName);
 public:
 	static bool bTableCreated;
