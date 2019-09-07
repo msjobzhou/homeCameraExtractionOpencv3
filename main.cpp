@@ -40,6 +40,7 @@ int main()
 	//test_SingleConsumerSingleProducer_class();
 
 	cout << calculateRunTime(homeCameraExtractionMainLoop) << endl;
+	//deleteHomeCameraVideoFile();
 
 	//cout << "1个线程串行读120次文件耗时"<< calculateRunTime(testReadVideoSerial) << endl;
 

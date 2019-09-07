@@ -53,7 +53,7 @@ void InitVideoFileDatabase() {
 	cout << "sqlite3_config_result :" << rc << endl;
 	//char *pDbName = "C:\\Users\\chao\\gitRepo\\learnPython\\testdb_cpp.db";
 	Database *pdb = new Database(g_pDbName);
-	char *path1 = "E:\\周晓董视频备份已处理文件";
+	char *path1 = "E:\\周晓董视频备份";
 	//char *path2 = "E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\09";
 	// 插入操作第一个参数ID是个自增字段
 	pdb->m_IDtable.insert(NULL, gbk_to_utf8(path1));
@@ -408,3 +408,100 @@ void homeCameraExtractionMainLoop() {
 	t.Expire();
 
 } 
+void deleteHomeCameraVideoFile() {
+	Database *pdb = new Database(g_pDbName);
+	//得出要删除的视频总数，DeleteMark为0的表示视频画面变化不大，要删除
+	string sqlQueryTotalNum = string("select count(*) from ScanFile where DeleteMark = 0;");
+	vector<vector<string> > resultsTotalNum;
+	vector<string> oneRow;
+	pdb->m_SFtable.query(resultsTotalNum, sqlQueryTotalNum);
+	if (resultsTotalNum.empty()) {
+		cout << "要删除的视频总数为0" << endl;
+		return;
+	}
+	oneRow = resultsTotalNum.at(0);
+	string strTotalNum = oneRow.at(0);
+	int videoNumToDeleted = atoi(strTotalNum.c_str());
+	int videoNumDeletedAlready = 0;
+	cout << "要删除的视频总数：" << videoNumToDeleted << endl;
+
+	//从sqlite中一次读10个要删除的文件，具体的读取方法是从ID等于1开始
+	//读取10个要删除的（deleteMark等于0）的文件，并将这次读取中最大的ID的后一个作为下次读取10个文件的起始ID，
+	//并以此类推循环读下去
+	int initialID = 1;
+	char chInitialID[16] = { 0 };
+	bool bOver = false;
+
+	while (true) {
+		if (bOver) {
+			break;
+		}
+
+		vector<vector<string> > results;
+		vector<string> oneRow;
+		_itoa(initialID, chInitialID, 10);
+		string sqlQuery = string("select * from ScanFile where ID >= ") + string(chInitialID)
+			+ string(" and DeleteMark = 0 limit 10;");
+		pdb->m_SFtable.query(results, sqlQuery);
+		if (!results.empty()) {
+			vector<vector<string> >::iterator v = results.begin();
+			vector<vector<string> > resultsDirectory;
+			vector<string> oneRowDirectory;
+			string scanDirectoryID;
+			string fileName;
+			string idPrimaryKey;
+			while (v != results.end()) {
+				oneRow = *v;
+
+				//从查询的每行记录的第二列中得到 ScanDirectoryID，第三列中得到FileName
+				scanDirectoryID = utf8_to_gbk(oneRow.at(1));
+				fileName = utf8_to_gbk(oneRow.at(2));
+				idPrimaryKey = utf8_to_gbk(oneRow.at(0));
+				//根据scanDirectoryID从ScanDirectory表中读取到目录，
+				//并将此目录和FileName组合成一个完整的绝对路径
+				string sqlQueryDirectory = string("select * from ScanDirectory where ID = ")
+					+ oneRow.at(1);
+				//cout << "sqlQueryDirectory: " << sqlQueryDirectory << endl;
+				pdb->m_SDtable.query(resultsDirectory, sqlQueryDirectory);
+				if (resultsDirectory.empty()) {
+					cout << sqlQueryDirectory << "result is empty" << endl;
+					break;
+				}
+				//断言这个查询记录只有1条
+				assert(resultsDirectory.size() == 1);
+				oneRowDirectory = resultsDirectory.at(0);
+				//ScanDirectory表的第三列是path
+				string absoluteFilePath = oneRowDirectory.at(2) + '\\' + fileName;
+				string videoAbsolutePathGBK = utf8_to_gbk(absoluteFilePath);
+				//删除对应的文件，如果删除失败了，则打印出来
+				int nRetCode = FolderUtil::deleteFile(videoAbsolutePathGBK.c_str());
+				if (0 != nRetCode) {
+					cerr << "删除文件" << videoAbsolutePathGBK << "失败" << endl;
+					cerr << "错误码" << errno << endl;
+				}
+
+				resultsDirectory.clear();
+				vector<vector<string>>(resultsDirectory).swap(resultsDirectory);
+				oneRowDirectory.clear();
+				vector<string>(oneRowDirectory).swap(oneRowDirectory);
+
+				v++;
+			}
+			initialID = atoi(idPrimaryKey.c_str()) + 1;
+		}//if (!results.empty()) end
+
+		//没处理1000个，打印1次处理进展
+		videoNumDeletedAlready = videoNumDeletedAlready + results.size();
+		if (videoNumDeletedAlready % 1000 == 0) {
+			cout << "已删除视频个数:" << videoNumDeletedAlready << endl;
+		}
+		//如果数据库中读取的记录个数小于10个，则删除完成
+		if (results.size() < 10) {
+			bOver = true;
+		}
+		oneRow.clear();
+		vector<string>(oneRow).swap(oneRow);
+		results.clear();
+		vector<vector<string>>(results).swap(results);
+	}//while (true) end
+}

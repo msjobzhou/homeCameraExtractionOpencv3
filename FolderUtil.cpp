@@ -337,3 +337,7 @@ int FolderUtil::mkdirByLevel(const char* path) {
 	}
 	return 0;
 }
+
+int FolderUtil::deleteFile(const char* filePath) {
+	return remove(filePath);
+}

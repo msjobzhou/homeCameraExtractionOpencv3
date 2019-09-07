@@ -33,5 +33,7 @@ public:
 	static int getFolderAndFilename(char* fullPath, char* folder, char* fileName);
 
 	static void traverseFolderBFS(string path, traverseFolder_handler2 tfh);
+
+	static int deleteFile(const char* filePath);
 };
 
