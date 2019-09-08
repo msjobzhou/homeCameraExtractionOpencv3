@@ -53,7 +53,7 @@ void InitVideoFileDatabase() {
 	cout << "sqlite3_config_result :" << rc << endl;
 	//char *pDbName = "C:\\Users\\chao\\gitRepo\\learnPython\\testdb_cpp.db";
 	Database *pdb = new Database(g_pDbName);
-	char *path1 = "E:\\周晓董视频备份";
+	char *path1 = "D:\\周晓董视频备份2017年10月23日到11月12日";
 	//char *path2 = "E:\\周晓董视频备份\\客厅墙上\\2018-01-16\\09";
 	// 插入操作第一个参数ID是个自增字段
 	pdb->m_IDtable.insert(NULL, gbk_to_utf8(path1));

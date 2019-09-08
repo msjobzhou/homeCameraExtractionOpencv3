@@ -33,3 +33,7 @@ void test_SingleConsumerSingleProducer_class();
 
 int test_thread_pool();
 void testTimer();
+
+void test_get_current_time();
+
+int test_myLogger();

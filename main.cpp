@@ -54,6 +54,10 @@ int main()
 
 	//cout << __FUNCTION__ << endl;
 
+	//test_get_current_time();
+
+	//test_myLogger();
+
 	return 0;
 }
 

@@ -24,6 +24,8 @@
 #include "codeConvert.h"
 #include "SingleConsumerSingleProducer.hpp"
 
+#include <chrono>
+
 using namespace cv;
 vector<string> gVecFolderTest;
 vector<string> gVecFileTest;
@@ -413,4 +415,12 @@ void testTimer(){
 	std::this_thread::sleep_for(std::chrono::seconds(2));
 
 
+}
+
+void test_get_current_time() {
+	auto tp = std::chrono::system_clock::now();  //得到系统时间
+	time_t tt = std::chrono::system_clock::to_time_t(tp);            //将系统时间time_point 转化为time_t格式
+	std::string strTime = ctime(&tt);                                //将time_t转换成字符串
+	std::cout << strTime.c_str() << std::endl;
+	
 }
