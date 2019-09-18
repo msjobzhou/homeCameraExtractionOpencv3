@@ -3,6 +3,10 @@
 #include "homeCameraExtractionMain.h"
 #include "BenchmarkOpencv.h"
 #include <iostream>
+#include "netClient.h"
+#include "netServer.h"
+#include <thread>
+
 
 using namespace std;
 
@@ -57,6 +61,14 @@ int main()
 	//test_get_current_time();
 
 	//test_myLogger();
+
+	//test_createProcess();
+
+	//thread tServer = thread(netServer);
+	//thread tClient = thread(netClientTestWetherServerAlive);
+
+	//tServer.join();
+	//tClient.join();
 
 	return 0;
 }

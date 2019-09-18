@@ -26,6 +26,8 @@
 
 #include <chrono>
 
+
+
 using namespace cv;
 vector<string> gVecFolderTest;
 vector<string> gVecFileTest;
@@ -424,3 +426,4 @@ void test_get_current_time() {
 	std::cout << strTime.c_str() << std::endl;
 	
 }
+
