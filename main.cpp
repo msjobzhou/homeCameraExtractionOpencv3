@@ -43,7 +43,9 @@ int main()
 
 	//test_SingleConsumerSingleProducer_class();
 
-	cout << calculateRunTime(homeCameraExtractionMainLoop) << endl;
+	//thread tClient = thread(netClientTestWetherServerAlive);
+	//cout << calculateRunTime(homeCameraExtractionMainLoop) << endl;
+	//tClient.join();
 	//deleteHomeCameraVideoFile();
 
 	//cout << "1个线程串行读120次文件耗时"<< calculateRunTime(testReadVideoSerial) << endl;
@@ -64,11 +66,9 @@ int main()
 
 	//test_createProcess();
 
-	//thread tServer = thread(netServer);
-	//thread tClient = thread(netClientTestWetherServerAlive);
+	//test_server_client_communication();
 
-	//tServer.join();
-	//tClient.join();
+	netServerSelect();
 
 	return 0;
 }

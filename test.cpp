@@ -24,6 +24,9 @@
 #include "codeConvert.h"
 #include "SingleConsumerSingleProducer.hpp"
 
+#include "netClient.h"
+#include "netServer.h"
+
 #include <chrono>
 
 
@@ -427,3 +430,10 @@ void test_get_current_time() {
 	
 }
 
+void test_server_client_communication() {
+	thread tServer = thread(netServer);
+	thread tClient = thread(netClientTestWetherServerAlive);
+
+	tServer.join();
+	tClient.join();
+}

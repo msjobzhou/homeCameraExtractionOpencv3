@@ -39,3 +39,5 @@ void test_get_current_time();
 int test_myLogger();
 
 int test_createProcess();
+
+void test_server_client_communication();
