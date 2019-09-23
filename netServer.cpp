@@ -1,6 +1,7 @@
 #include<winsock2.h>
 #include<iostream>
 #include<string>
+#include <chrono>
 using namespace std;
 #pragma comment(lib,"ws2_32.lib")
 
@@ -97,6 +98,10 @@ int netServer(){
 }
 /*增加超时机制，如果超过一定的时间，对端client没有发送消息，则关闭socket*/
 int netServerSelect(){
+	//服务器端已经accept的连接上连续未收到任何数据的最长时间，超过这个时间服务器端将主动关闭对应连接
+	const int maxIdleConnectionSeconds = 300;
+	//整个服务器端连续未收到任何accept以及已建立连接上未收到任何数据的最长时间
+	const int maxServerIdleConsecutiveSeconds = 600; 
 
 	WORD sockVersion = MAKEWORD(2, 2);
 	WSADATA wsdata;
@@ -110,6 +115,8 @@ int netServerSelect(){
 	const int BUF_SIZE = 200;
 
 	int fd_A[BACKLOG] = {0};    // accepted connection fd
+	int connectionRemainTime[BACKLOG] = { maxIdleConnectionSeconds };//maxIdleConnectionSeconds for every connection
+	int serverMaxRemainIdleTime = maxServerIdleConsecutiveSeconds;
 	int conn_amount;    // current connection amount
 	int sock_fd, new_fd;  // listen on sock_fd, new connection on new_fd
 	SOCKADDR_IN server_addr;    // server address information
@@ -153,13 +160,16 @@ int netServerSelect(){
 	conn_amount = 0;
 	sin_size = sizeof(client_addr);
 	maxsock = sock_fd;
+	chrono::steady_clock::time_point lastTP = chrono::steady_clock::now();
+	chrono::steady_clock::time_point currentTP;
+	chrono::duration<double> deltaSeconds;
 	while (1) {
 		// initialize file descriptor set
 		FD_ZERO(&fdsr);
 		FD_SET(sock_fd, &fdsr);
 
 		// timeout setting
-		tv.tv_sec = 5;
+		tv.tv_sec = 30;
 		tv.tv_usec = 0;
 
 		// add active connection to fd set
@@ -175,17 +185,41 @@ int netServerSelect(){
 			perror("select error");
 			break;
 		}
+		//select超时场景
 		else if (ret == 0) {
+			currentTP = chrono::steady_clock::now();
+			deltaSeconds = chrono::duration_cast<chrono::duration<double>>(currentTP - lastTP);
+			lastTP = currentTP;
 			printf("timeout error\n");
+			for (i = 0; i < BACKLOG; i++) {
+				if (fd_A[i] != 0) {
+					connectionRemainTime[i] -= (int)deltaSeconds.count();
+					if (connectionRemainTime[i] <= 0) {
+						closesocket(fd_A[i]);
+						FD_CLR(fd_A[i], &fdsr);
+						fd_A[i] = 0;
+						conn_amount--;
+						//待增加启动对应监控程序代码
+					}
+				}
+			}
+			serverMaxRemainIdleTime -= (int)deltaSeconds.count();
+			if (serverMaxRemainIdleTime <= 0) {
+				//待增加启动对应监控程序代码
+			}
 			continue;
 		}
-
+		
+		currentTP = chrono::steady_clock::now();
+		deltaSeconds = chrono::duration_cast<chrono::duration<double>>(currentTP - lastTP);
+		lastTP = currentTP;
 		// check every fd in the set
 		for (i = 0; i < BACKLOG; i++) {
 			if (fd_A[i] == 0)
 				continue;
 
 			if (FD_ISSET(fd_A[i], &fdsr)) {
+				connectionRemainTime[i] = maxIdleConnectionSeconds;
 				ret = recv(fd_A[i], buf, sizeof(buf), 0);
 				if (ret <= 0) {        // client close
 					printf("client[%d] close\n", i);
@@ -193,11 +227,22 @@ int netServerSelect(){
 					FD_CLR(fd_A[i], &fdsr);
 					fd_A[i] = 0;
 					conn_amount--;
+					//待增加启动对应监控程序代码
 				}
 				else {        // receive data
 					if (ret < BUF_SIZE)
 						memset(&buf[ret], '\0', 1);
 					printf("client[%d] send:%s\n", i, buf);
+				}
+			}
+			else {
+				connectionRemainTime[i] -= (int)deltaSeconds.count();
+				if (connectionRemainTime[i] <= 0) {
+					closesocket(fd_A[i]);
+					FD_CLR(fd_A[i], &fdsr);
+					fd_A[i] = 0;
+					conn_amount--;
+					//待增加启动对应监控程序代码
 				}
 			}
 		}
@@ -235,6 +280,7 @@ int netServerSelect(){
 				break;
 			}
 		}
+		serverMaxRemainIdleTime = maxServerIdleConsecutiveSeconds;
 	}
 
 	closesocket(sock_fd);
