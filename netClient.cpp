@@ -43,7 +43,7 @@ int netClientTestWetherServerAlive()
 	while (nAlreadyConsectiveRetryTime<nTotalConsectiveRetryTime) {
 		nAlreadyConsectiveRetryTime++;
 		send(clientSocket, msg, strlen(msg), 0);
-		cout << "client send:" << msg << endl;
+		//cout << "client send:" << msg << endl;
 
 		char revdata[100];
 		int num = recv(clientSocket, revdata, 100, 0);
@@ -51,13 +51,13 @@ int netClientTestWetherServerAlive()
 			revdata[num] = '\0';
 		
 			if (0 == strcmp(revdata, expectedMsg)) {
-				cout << "client recv:" << revdata << endl;
+				//cout << "client recv:" << revdata << endl;
 				nAlreadyConsectiveRetryTime = 0;
-				std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+				std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 				continue;
 			}
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 	}
 	closesocket(clientSocket);
 

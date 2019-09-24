@@ -28,6 +28,8 @@
 #include <assert.h>
 #include <signal.h>
 
+#include "netClient.h"
+
 
 using namespace std;
 
@@ -395,6 +397,11 @@ void sighandler(int signum)
 void homeCameraExtractionMainLoop() {
 	//注册中断处理函数
 	signal(SIGINT, sighandler);
+
+	//启动一个客户端线程和远程监控程序（服务器端）进行定时通讯，如果监控程序超过一定时间没有收到对应客户端发过来
+	//的定时echo探测消息，则监控程序认为主程序homeCameraExtraction故障了，则监控程序拉起homeCameraExtraction.exe
+	std::thread netClientThread(netClientTestWetherServerAlive);
+
 
 	InitVideoFileDatabase();
 	Timer t;

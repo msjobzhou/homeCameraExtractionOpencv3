@@ -2,6 +2,8 @@
 #include<iostream>
 #include<string>
 #include <chrono>
+
+#include "test.h"
 using namespace std;
 #pragma comment(lib,"ws2_32.lib")
 
@@ -99,9 +101,9 @@ int netServer(){
 /*增加超时机制，如果超过一定的时间，对端client没有发送消息，则关闭socket*/
 int netServerSelect(){
 	//服务器端已经accept的连接上连续未收到任何数据的最长时间，超过这个时间服务器端将主动关闭对应连接
-	const int maxIdleConnectionSeconds = 300;
+	const int maxIdleConnectionSeconds = 60;
 	//整个服务器端连续未收到任何accept以及已建立连接上未收到任何数据的最长时间
-	const int maxServerIdleConsecutiveSeconds = 600; 
+	const int maxServerIdleConsecutiveSeconds = 120; 
 
 	WORD sockVersion = MAKEWORD(2, 2);
 	WSADATA wsdata;
@@ -110,7 +112,7 @@ int netServerSelect(){
 		return 1;
 	}
 
-	const int MYPORT = 1234;   // the port users will be connecting to
+	const int MYPORT = 8888;   // the port users will be connecting to
 	const int BACKLOG = 5;     // how many pending connections queue will hold
 	const int BUF_SIZE = 200;
 
@@ -198,14 +200,18 @@ int netServerSelect(){
 						closesocket(fd_A[i]);
 						FD_CLR(fd_A[i], &fdsr);
 						fd_A[i] = 0;
+						//重置连接剩余时间
+						connectionRemainTime[i] = maxIdleConnectionSeconds;
 						conn_amount--;
 						//待增加启动对应监控程序代码
+						test_createProcess();
 					}
 				}
 			}
 			serverMaxRemainIdleTime -= (int)deltaSeconds.count();
 			if (serverMaxRemainIdleTime <= 0) {
-				//待增加启动对应监控程序代码
+				//待增加启动对应监控程序代码，启动所有需要监控的程序
+				test_createProcess();
 			}
 			continue;
 		}
@@ -226,13 +232,23 @@ int netServerSelect(){
 					closesocket(fd_A[i]);
 					FD_CLR(fd_A[i], &fdsr);
 					fd_A[i] = 0;
+					//重置连接剩余时间
+					connectionRemainTime[i] = maxIdleConnectionSeconds;
 					conn_amount--;
 					//待增加启动对应监控程序代码
+					test_createProcess();
 				}
 				else {        // receive data
 					if (ret < BUF_SIZE)
 						memset(&buf[ret], '\0', 1);
+					//connectionRemainTime[i] = maxIdleConnectionSeconds;
 					printf("client[%d] send:%s\n", i, buf);
+					const char * expectedMsg = "echo request";
+					if (0 == strcmp(buf, expectedMsg)) {
+						const char * sendData = "echo response";
+						send(fd_A[i], sendData, strlen(sendData), 0);
+					}
+					
 				}
 			}
 			else {
@@ -241,8 +257,11 @@ int netServerSelect(){
 					closesocket(fd_A[i]);
 					FD_CLR(fd_A[i], &fdsr);
 					fd_A[i] = 0;
+					//重置连接剩余时间
+					connectionRemainTime[i] = maxIdleConnectionSeconds;
 					conn_amount--;
 					//待增加启动对应监控程序代码
+					test_createProcess();
 				}
 			}
 		}

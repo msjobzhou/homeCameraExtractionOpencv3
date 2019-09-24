@@ -11,7 +11,8 @@ int test_createProcess() {
 	PROCESS_INFORMATION stProcessInfo;
 	::memset(&stProcessInfo, 0, sizeof(stProcessInfo));
 
-	TCHAR szPath[] = _T("c:\\cygwin\\home\\chao\\cpp11\\TimerTest.exe");
+	//TCHAR szPath[] = _T("C:\\cygwin64\\bin\\mintty.exe");
+	TCHAR szPath[] = _T("D:\\homeCameraExtractionOpencv3.exe");
 	try
 	{
 		bool bRet = ::CreateProcess(
