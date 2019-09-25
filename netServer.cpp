@@ -171,7 +171,7 @@ int netServerSelect(){
 		FD_SET(sock_fd, &fdsr);
 
 		// timeout setting
-		tv.tv_sec = 30;
+		tv.tv_sec = 10;
 		tv.tv_usec = 0;
 
 		// add active connection to fd set
