@@ -15,6 +15,7 @@
 ## 文件结构：
 
 rapidxml(xml文件读写开源代码：原本想用xml文件记录视频文件的处理结果，后来改用sqlite3数据库了)
+
 |---license.txt
 
 |---manual.html	
@@ -97,9 +98,15 @@ thread_pool.hpp(线程池，C++11实现)
 
 ### 文件遍历
 
+使用C语言自带的direct.h库中的函数进行文件遍历和文件删除操作
+
 ### Sqlite3数据库
 
+难点在于windows系统默认的中文编码是GBK，sqlite默认存储的编码格式是UTF-8，这里涉及到较多的中文编码格式转换操作，具体参考业务代码
+
 ### C++11多线程
+
+相关代码主要参考《C++ Concurrency in Action》这本书中的代码
 
 ### GBK和UTF-8编码
 
@@ -112,5 +119,13 @@ thread_pool.hpp(线程池，C++11实现)
 
 ### opencv3图像处理
 
+主要参考《学习opencv3》这本书中的代码
+
 ### 日志系统
+
+当前尚未使用，具体使用方法可以参考测试代码
+
+### 其他：
+
+此程序代码利用晚上下班之后的时间，断断续续写了大概小半年，过程中查找的资料都记录到如下路径了，详细内容可以参考：https://github.com/msjobzhou/gitskills 中的readme.md文件
 
